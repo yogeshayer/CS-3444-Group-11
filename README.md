@@ -18,9 +18,11 @@ ChoreBoard is an application designed to display chore and expense management fo
 - C++ Standard
 
 ### Use
-A. Compile Program (g++ main.cpp ChoreBoard.cpp, ./a.exe).
+A. Download zip of ChoreBoard program
 
-B. Console Menu:
+B. Compile Program (g++ main.cpp ChoreBoard.cpp, ./a.exe).
+
+C. Console Menu:
 
    1. Register: Enter name, email, password, and status.
    3. Login: Enter email and password.
@@ -33,7 +35,7 @@ B. Console Menu:
    
 ### Future Work
 - Add a GUI for more interactive use and display
-- Add an html display for wirefarming and accessibility
+- Add an html display for wireframing and accessibility
 - Integrate a database for front end storage
 - Implement password encryption and 15 minute timeout
 - Add expense splitting
