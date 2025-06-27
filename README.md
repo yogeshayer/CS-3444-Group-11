@@ -3,7 +3,7 @@
 
 ## Overview
 
-ChoreBoard is a web-based application designed to display chore and expense management for roommates in shared living spaces. More so a Digital tool designed for roommates to track chores and split expenses easily. It helps users assign tasks, rotate responsibilities, track completion, and log shared costs.
+ChoreBoard is an application designed to display chore and expense management for roommates in shared living spaces. Designed for roommates to track chores and split expenses easily. It helps users assign tasks, rotate responsibilities, track completion, and log shared costs.
 
 ### Features
 1. User Registration and Login: Users can create accounts and log in securely.
@@ -12,14 +12,28 @@ ChoreBoard is a web-based application designed to display chore and expense mana
 4. Dashboard: Displays upcoming chores, expense summaries, and notifications.
 5. Accessibility: Supports screen readers and keyboard navigation.
 6. Security: Password encryption and session timeout after 15 minutes of inactivity.
-<<<<<<< HEAD
-7.
-
-=======
 
 ### Prerequisites 
-- Node.js
-- npm
-- Git
-- MongoDB
->>>>>>> 173409318fa387d68ce5bad8a55db57293e847f6
+- C++ Compilier (g++, GCC, etc) 
+- C++ Standard
+
+### Use
+A. Compile Program (g++ main.cpp ChoreBoard.cpp, ./a.exe).
+
+B. Console Menu:
+
+   1. Register: Enter name, email, password, and status.
+   3. Login: Enter email and password.
+   4. Create Chore: Admin only access, enter name, disc, date, and user assigned.
+   5. View Chores: Shows all chores to logged in user/admins
+   6. Complete Chore: Complete assigned chore.
+   7. Log Expenses: Enter amount, disc, catergory.
+   8. View Expenses: Displays expenses.
+   9. Exit: Close program.
+   
+### Future Work
+- Add a GUI for more interactive use and display
+- Add an html display for wirefarming and accessibility
+- Integrate a database for front end storage
+- Implement password encryption and 15 minute timeout
+- Add expense splitting
