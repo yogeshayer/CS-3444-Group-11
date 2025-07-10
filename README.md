@@ -34,8 +34,5 @@ C. Console Menu:
    9. Exit: Close program.
    
 ### Future Work
-- Add a GUI for more interactive use and display
-- Add an html display for wireframing and accessibility
-- Integrate a database for front end storage
-- Implement password encryption and 15 minute timeout
-- Add expense splitting
+ - The application gui has been developed and tested and will be updated on here shortly. 
+
