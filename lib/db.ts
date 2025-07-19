@@ -1,6 +1,7 @@
-import { AstraDB } from "@datastax/astra-db-ts";
+import { createClient } from "@datastax/astra-db-ts";
 
-export const db = new AstraDB({
-  endpoint: process.env.ASTRA_DB_API_ENDPOINT!,
-  token: process.env.ASTRA_DB_APPLICATION_TOKEN!,
+const client = createClient({
+  databaseId: process.env.ASTRA_DB_ID!,
+  region: process.env.ASTRA_DB_REGION!,
+  applicationToken: process.env.ASTRA_DB_APPLICATION_TOKEN!,
 });
