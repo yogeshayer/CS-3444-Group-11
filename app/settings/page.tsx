@@ -1,369 +1,450 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { AppHeader } from "@/components/app-header"
+import { AppNavigation } from "@/components/app-navigation"
+import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Bell, RotateCcw, Shield, Palette, Star, Download } from "lucide-react"
-import Link from "next/link"
+import { VisualEffects } from "@/components/visual-effects"
+import { Bell, Eye, EyeOff, Shield, UserIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { ElectricSparks } from "@/components/visual-effects"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
-interface User {
-  id: string
-  name: string
-  email: string
-  isAdmin: boolean
+interface NotificationSettings {
+  choreReminders: boolean
+  expenseAlerts: boolean
+  weeklyReports: boolean
+  systemUpdates: boolean
 }
 
 export default function SettingsPage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [settings, setSettings] = useState({
-    notifications: {
-      choreReminders: true,
-      expenseAlerts: true,
-      weeklyReports: false,
-    },
-    choreRotation: {
-      enabled: false,
-      frequency: "weekly",
-    },
-    general: {
-      theme: "light",
-      autoApproveExpenses: false,
-    },
+  const [user, setUser] = useState<any | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+    avatar: "",
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    choreReminders: true,
+    expenseAlerts: true,
+    weeklyReports: false,
+    systemUpdates: true,
   })
   const router = useRouter()
 
   useEffect(() => {
-    const userData = localStorage.getItem("currentUser")
-    if (!userData) {
+    const currentUser = localStorage.getItem("currentUser")
+    if (!currentUser) {
       router.push("/")
       return
     }
 
-    const user = JSON.parse(userData)
-    setCurrentUser(user)
+    const userData = JSON.parse(currentUser)
+    setUser(userData)
+    setProfileData({
+      name: userData.name,
+      email: userData.email,
+      avatar: userData.avatar || "",
+    })
 
-    // Check if user is admin
-    if (!user.isAdmin) {
-      router.push("/dashboard")
+    // Load notification settings
+    const savedNotifications = localStorage.getItem(`notifications_${userData.id}`)
+    if (savedNotifications) {
+      setNotifications(JSON.parse(savedNotifications))
+    }
+
+    setIsLoading(false)
+  }, [router])
+
+  const handleProfileUpdate = async () => {
+    if (!user) return
+
+    setIsSaving(true)
+    try {
+      // Update user data
+      const updatedUser = {
+        ...user,
+        name: profileData.name,
+        email: profileData.email,
+        avatar: profileData.avatar,
+      }
+
+      // Update in localStorage
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+
+      // Update in registered users
+      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+      const updatedRegisteredUsers = registeredUsers.map((u: any) => (u.id === user.id ? updatedUser : u))
+      localStorage.setItem("registeredUsers", JSON.stringify(updatedRegisteredUsers))
+
+      // Update in household data
+      const userDataKey = user.isAdmin ? `choreboardData_${user.id}` : `choreboardData_${user.adminId}`
+      const choreboardData = localStorage.getItem(userDataKey)
+      if (choreboardData) {
+        const data = JSON.parse(choreboardData)
+        data.users = data.users.map((u: any) => (u.id === user.id ? updatedUser : u))
+        localStorage.setItem(userDataKey, JSON.stringify(data))
+      }
+
+      setUser(updatedUser)
+      toast.success("Profile updated successfully!")
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      toast.error("Failed to update profile")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handlePasswordChange = async () => {
+    if (!user) return
+
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error("Please fill in all password fields")
       return
     }
 
-    // Load settings from localStorage
-    const savedSettings = localStorage.getItem("choreboardSettings")
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings))
+    if (passwordData.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters long")
+      return
     }
-  }, [router])
 
-  const updateSettings = async (newSettings: typeof settings) => {
-    setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 300)) // Simulate API call
-
-    setSettings(newSettings)
-    localStorage.setItem("choreboardSettings", JSON.stringify(newSettings))
-    setIsLoading(false)
-  }
-
-  const handleNotificationChange = (key: string, value: boolean) => {
-    const newSettings = {
-      ...settings,
-      notifications: {
-        ...settings.notifications,
-        [key]: value,
-      },
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords do not match")
+      return
     }
-    updateSettings(newSettings)
-  }
 
-  const handleRotationChange = (key: string, value: boolean | string) => {
-    const newSettings = {
-      ...settings,
-      choreRotation: {
-        ...settings.choreRotation,
-        [key]: value,
-      },
+    // Verify current password
+    if (passwordData.currentPassword !== user.password) {
+      toast.error("Current password is incorrect")
+      return
     }
-    updateSettings(newSettings)
-  }
 
-  const handleGeneralChange = (key: string, value: boolean | string) => {
-    const newSettings = {
-      ...settings,
-      general: {
-        ...settings.general,
-        [key]: value,
-      },
-    }
-    updateSettings(newSettings)
-  }
+    setIsSaving(true)
+    try {
+      // Update user password
+      const updatedUser = {
+        ...user,
+        password: passwordData.newPassword,
+      }
 
-  const handleExportData = () => {
-    const choreboardData = localStorage.getItem("choreboardData")
-    if (choreboardData) {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(choreboardData)
-      const downloadAnchorNode = document.createElement("a")
-      downloadAnchorNode.setAttribute("href", dataStr)
-      downloadAnchorNode.setAttribute("download", "choreboard-data.json")
-      document.body.appendChild(downloadAnchorNode)
-      downloadAnchorNode.click()
-      downloadAnchorNode.remove()
+      // Update in localStorage
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+
+      // Update in registered users
+      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+      const updatedRegisteredUsers = registeredUsers.map((u: any) => (u.id === user.id ? updatedUser : u))
+      localStorage.setItem("registeredUsers", JSON.stringify(updatedRegisteredUsers))
+
+      // Update in household data
+      const userDataKey = user.isAdmin ? `choreboardData_${user.id}` : `choreboardData_${user.adminId}`
+      const choreboardData = localStorage.getItem(userDataKey)
+      if (choreboardData) {
+        const data = JSON.parse(choreboardData)
+        data.users = data.users.map((u: any) => (u.id === user.id ? updatedUser : u))
+        localStorage.setItem(userDataKey, JSON.stringify(data))
+      }
+
+      setUser(updatedUser)
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
+      toast.success("Password changed successfully!")
+    } catch (error) {
+      console.error("Error changing password:", error)
+      toast.error("Failed to change password")
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  if (!currentUser) {
-    return <div>Loading...</div>
+  const handleNotificationUpdate = (key: keyof NotificationSettings, value: boolean) => {
+    if (!user) return
+
+    const updatedNotifications = {
+      ...notifications,
+      [key]: value,
+    }
+
+    setNotifications(updatedNotifications)
+    localStorage.setItem(`notifications_${user.id}`, JSON.stringify(updatedNotifications))
+    toast.success("Notification settings updated!")
   }
 
-  if (!currentUser.isAdmin) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">Admin privileges required to access settings.</p>
-            <Link href="/dashboard">
-              <Button>Return to Dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <SessionTimeoutProvider>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </SessionTimeoutProvider>
     )
   }
 
+  if (!user) return null
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-amber-50 dark:from-gray-900 dark:via-orange-900 dark:to-amber-900 relative transition-all duration-500">
-      <ElectricSparks />
+    <SessionTimeoutProvider>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative transition-all duration-500">
+        <VisualEffects />
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4 animate-slide-in">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="hover:bg-primary/10 transition-all duration-300">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                Admin Settings
-              </h1>
-              <p className="text-muted-foreground">Configure ChoreBoard for your household</p>
+        <div className="relative z-10">
+          <AppHeader />
+          <AppNavigation />
+
+          <main className="container mx-auto px-4 py-8">
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Page Header */}
+              <div className="animate-slide-in">
+                <h2 className="text-3xl font-bold text-foreground">Settings</h2>
+                <p className="text-muted-foreground">Manage your account and preferences</p>
+              </div>
+
+              {/* Profile Settings */}
+              <Card className="animate-slide-in" style={{ animationDelay: "0.1s" }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserIcon className="w-5 h-5" />
+                    Profile Settings
+                  </CardTitle>
+                  <CardDescription>Update your personal information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center gap-6">
+                    <Avatar className="w-20 h-20">
+                      <AvatarImage src={profileData.avatar || "/placeholder.svg"} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl font-bold">
+                        {profileData.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold">{user.name}</h3>
+                        {user.isAdmin && (
+                          <Badge className="bg-gradient-to-r from-purple-600 to-blue-600">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        placeholder="Enter your email"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="avatar">Avatar URL (Optional)</Label>
+                    <Input
+                      id="avatar"
+                      value={profileData.avatar}
+                      onChange={(e) => setProfileData({ ...profileData, avatar: e.target.value })}
+                      placeholder="Enter avatar image URL"
+                    />
+                  </div>
+
+                  <Button onClick={handleProfileUpdate} disabled={isSaving} className="w-full md:w-auto">
+                    {isSaving ? "Updating..." : "Update Profile"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Change Password */}
+              <Card className="animate-slide-in" style={{ animationDelay: "0.2s" }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Change Password
+                  </CardTitle>
+                  <CardDescription>Update your account password</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        placeholder="Enter your current password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          placeholder="Enter new password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          placeholder="Confirm new password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    <p>Password requirements:</p>
+                    <ul className="list-disc list-inside mt-1 space-y-1">
+                      <li>At least 6 characters long</li>
+                      <li>New password must be different from current password</li>
+                    </ul>
+                  </div>
+
+                  <Button onClick={handlePasswordChange} disabled={isSaving} className="w-full md:w-auto">
+                    {isSaving ? "Changing..." : "Change Password"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Notification Settings */}
+              <Card className="animate-slide-in" style={{ animationDelay: "0.3s" }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="w-5 h-5" />
+                    Notification Settings
+                  </CardTitle>
+                  <CardDescription>Manage your notification preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Chore Reminders</Label>
+                        <p className="text-sm text-muted-foreground">Get notified about upcoming and overdue chores</p>
+                      </div>
+                      <Switch
+                        checked={notifications.choreReminders}
+                        onCheckedChange={(checked) => handleNotificationUpdate("choreReminders", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Expense Alerts</Label>
+                        <p className="text-sm text-muted-foreground">Get notified about new expenses and payments</p>
+                      </div>
+                      <Switch
+                        checked={notifications.expenseAlerts}
+                        onCheckedChange={(checked) => handleNotificationUpdate("expenseAlerts", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Weekly Reports</Label>
+                        <p className="text-sm text-muted-foreground">Receive weekly household activity summaries</p>
+                      </div>
+                      <Switch
+                        checked={notifications.weeklyReports}
+                        onCheckedChange={(checked) => handleNotificationUpdate("weeklyReports", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>System Updates</Label>
+                        <p className="text-sm text-muted-foreground">Get notified about app updates and maintenance</p>
+                      </div>
+                      <Switch
+                        checked={notifications.systemUpdates}
+                        onCheckedChange={(checked) => handleNotificationUpdate("systemUpdates", checked)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 animate-bounce-in">
-              <Shield className="w-3 h-3 mr-1" />
-              Admin Only
-            </Badge>
-          </div>
-          <ThemeToggle />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Notification Settings */}
-          <Card className="animate-bounce-in glow-blue">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5 animate-bounce" />
-                Notification Settings
-              </CardTitle>
-              <CardDescription>Configure when and how users receive notifications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Chore Reminders</Label>
-                  <p className="text-sm text-muted-foreground">Send reminders for upcoming chores</p>
-                </div>
-                <Switch
-                  checked={settings.notifications.choreReminders}
-                  onCheckedChange={(checked) => handleNotificationChange("choreReminders", checked)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Expense Alerts</Label>
-                  <p className="text-sm text-muted-foreground">Notify when new expenses need approval</p>
-                </div>
-                <Switch
-                  checked={settings.notifications.expenseAlerts}
-                  onCheckedChange={(checked) => handleNotificationChange("expenseAlerts", checked)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Weekly Reports</Label>
-                  <p className="text-sm text-muted-foreground">Send weekly summary reports</p>
-                </div>
-                <Switch
-                  checked={settings.notifications.weeklyReports}
-                  onCheckedChange={(checked) => handleNotificationChange("weeklyReports", checked)}
-                  disabled={isLoading}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Chore Rotation Settings */}
-          <Card className="animate-bounce-in glow-green" style={{ animationDelay: "0.1s" }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="w-5 h-5 animate-spin" />
-                Chore Rotation
-              </CardTitle>
-              <CardDescription>Automatically rotate chores among roommates</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Enable Rotation</Label>
-                  <p className="text-sm text-muted-foreground">Automatically reassign chores periodically</p>
-                </div>
-                <Switch
-                  checked={settings.choreRotation.enabled}
-                  onCheckedChange={(checked) => handleRotationChange("enabled", checked)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              {settings.choreRotation.enabled && (
-                <div className="space-y-2 animate-slide-in">
-                  <Label htmlFor="frequency">Rotation Frequency</Label>
-                  <Select
-                    value={settings.choreRotation.frequency}
-                    onValueChange={(value) => handleRotationChange("frequency", value)}
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger className="transition-all duration-300 focus:glow-green">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <Star className="w-4 h-4 inline mr-1 animate-sparkle" />
-                  Rotation ensures fair distribution of chores among all roommates
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* General Settings */}
-          <Card className="animate-bounce-in glow-purple" style={{ animationDelay: "0.2s" }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="w-5 h-5 animate-float" />
-                General Settings
-              </CardTitle>
-              <CardDescription>Configure general application behavior</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="theme">Theme</Label>
-                <Select
-                  value={settings.general.theme}
-                  onValueChange={(value) => handleGeneralChange("theme", value)}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger className="transition-all duration-300 focus:glow-purple">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="auto">Auto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Auto-approve Expenses</Label>
-                  <p className="text-sm text-muted-foreground">Automatically approve expenses under $50</p>
-                </div>
-                <Switch
-                  checked={settings.general.autoApproveExpenses}
-                  onCheckedChange={(checked) => handleGeneralChange("autoApproveExpenses", checked)}
-                  disabled={isLoading}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Information */}
-          <Card className="animate-bounce-in glow-pink" style={{ animationDelay: "0.3s" }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 animate-pulse" />
-                System Information
-              </CardTitle>
-              <CardDescription>Application details and security</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="font-medium text-foreground">Version</p>
-                  <p className="text-muted-foreground">1.2.0</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Last Updated</p>
-                  <p className="text-muted-foreground">Today</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Security</p>
-                  <p className="text-muted-foreground">15-min timeout</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Backup</p>
-                  <p className="text-muted-foreground">Auto-enabled</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <Button
-                  variant="outline"
-                  className="w-full bg-transparent hover:bg-primary/10 transition-all duration-300"
-                  onClick={handleExportData}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Data
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Save Status */}
-        <div className="mt-8 text-center">
-          <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg inline-block animate-bounce-in">
-            <p className="text-green-700 dark:text-green-300 flex items-center gap-2">
-              <Star className="w-4 h-4 animate-sparkle" />
-              {isLoading ? "Saving settings..." : "Settings are automatically saved"}
-            </p>
-          </div>
+          </main>
         </div>
       </div>
-    </div>
+    </SessionTimeoutProvider>
   )
 }
