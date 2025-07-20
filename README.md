@@ -15,4 +15,4 @@ ChoreBoard is an application designed to display chore and expense management fo
 
 
 To use ChoreBoard please use the URL in the top right of the repository home page or visit this link:
-https://cs-3444-group-11-1h22.vercel.app/
+https://cs-3444-group-11-wlwe.vercel.app/
