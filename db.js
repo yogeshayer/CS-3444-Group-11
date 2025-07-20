@@ -1,26 +1,18 @@
+require('dotenv').config(); // Load .env variables
+const { MongoClient } = require('mongodb');
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = "mongodb+srv://sunilayer018:t2rPxxBklFTv9wsC@choreboard.jdwvnun.mongodb.net/?retryWrites=true&w=majority&appName=choreboard";
+const uri = process.env.MONGODB_URI;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
+const client = new MongoClient(uri);
 
-async function run() {
+async function connectToDB() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    console.log("✅ Connected to MongoDB");
+    return client.db("choreboard"); // name of your database
+  } catch (err) {
+    console.error("❌ DB connection failed:", err);
   }
 }
-run().catch(console.dir);
+
+module.exports = connectToDB;
