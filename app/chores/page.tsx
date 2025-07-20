@@ -1,10 +1,10 @@
-
-import UserForm from '@/components/UserForm';
-
 "use client"
-
+import UserForm from '@/components/UserForm';
 import { AppHeader } from "@/components/app-header";
 import { AppNavigation } from "@/components/app-navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { SessionTimeoutProvider } from "@/components/session-timeout-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -978,14 +978,4 @@ export default function ChoresPage() {
       </div>
     </SessionTimeoutProvider>
   )
-}
-
-
-export default function Page() {
-  return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Add User</h1>
-      <UserForm />
-    </div>
-  );
 }
