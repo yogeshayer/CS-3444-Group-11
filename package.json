@@ -50,6 +50,7 @@
     "dotenv": "latest",
     "embla-carousel-react": "latest",
     "express": "latest",
+    "firebase": "^12.0.0",
     "gcp-metadata": "latest",
     "input-otp": "latest",
     "kerberos": "latest",

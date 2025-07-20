@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@/lib/db'
+import { connectToDatabase } from '@/lib/firebase'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
