@@ -13,7 +13,7 @@ export async function connectToDatabase() {
   try {
     client = new MongoClient(uri)
     await client.connect()
-    db = client.db('choreboard')
+    db = client.db('choreboarddb')
     console.log('✅ Connected to MongoDB!')
     return { client, db }
   } catch (error) {
