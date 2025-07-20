@@ -1,11 +1,10 @@
-import { client } from "@/lib/db";
+import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const users = await client
-    .namespace(process.env.ASTRA_DB_NAMESPACE!)
-    .collection("users");
+
+  const users = await db.collection("users");
 
   const existing = await users.findOne({ email: body.email });
   if (existing) {
