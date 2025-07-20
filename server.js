@@ -1,16 +1,27 @@
-const cors = require('cors');
-app.use(cors());
 const express = require('express');
+const cors = require('cors');
 const connectToDB = require('./db');
 
-const app = express();
+const app = express(); // ✅ Define app BEFORE using it
 
-app.get('/', async (req, res) => {
-  const db = await connectToDB();                  // connect to DB
-  const tasks = await db.collection('tasks').find().toArray();  // read from "tasks" collection
-  res.send(tasks);
+app.use(cors()); // ✅ Now this works fine
+app.use(express.json()); // parse JSON body
+
+app.get('/', (req, res) => {
+  res.send('Welcome to ChoreBoard API!');
 });
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+app.get('/tasks', async (req, res) => {
+  const db = await connectToDB();
+  const tasks = await db.collection('tasks').find().toArray();
+  res.json(tasks);
 });
+
+app.post('/add-task', async (req, res) => {
+  const db = await connectToDB();
+  const { title, completed } = req.body;
+  const result = await db.collection('tasks').insertOne({ title, completed });
+  res.json({ message: '✅ Task added!', taskId: result.insertedId });
+});
+
+app.listen(3000, () => console.log('🚀 Server running on http://localhost:3000'));
