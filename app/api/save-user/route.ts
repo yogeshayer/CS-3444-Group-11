@@ -1,4 +1,3 @@
-
 import { connectToDatabase } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -10,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, id: result.insertedId });
   } catch (error) {
-    console.error('Error saving user:', error);
+    console.error('❌ Mongo error:', error);
     return NextResponse.json({ success: false, error: 'Failed to save user' }, { status: 500 });
   }
 }
