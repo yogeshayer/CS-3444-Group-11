@@ -20,3 +20,49 @@
 [debug] [2025-07-20T23:58:59.868Z] Checked if tokens are valid: true, expires at: 1753056853272
 [debug] [2025-07-20T23:58:59.868Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/choreboard-4246f/serviceAccounts/choreboard-4246f@appspot.gserviceaccount.com:testIamPermissions [none]
 [debug] [2025-07-20T23:58:59.868Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/choreboard-4246f/serviceAccounts/choreboard-4246f@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-07-20T23:59:00.129Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/choreboard-4246f/serviceAccounts/choreboard-4246f@appspot.gserviceaccount.com:testIamPermissions 404
+[debug] [2025-07-20T23:59:00.130Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/choreboard-4246f/serviceAccounts/choreboard-4246f@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2025-07-20T23:59:00.130Z] [functions] service account IAM check errored, deploy may fail: Request to https://iam.googleapis.com/v1/projects/choreboard-4246f/serviceAccounts/choreboard-4246f@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}},"response":{"statusCode":404}},"exit":1,"message":"Request to https://iam.googleapis.com/v1/projects/choreboard-4246f/serviceAccounts/choreboard-4246f@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account","status":404}
+[debug] [2025-07-20T23:59:00.130Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.130Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.131Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/choreboard-4246f [none]
+[debug] [2025-07-20T23:59:00.391Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/choreboard-4246f 200
+[debug] [2025-07-20T23:59:00.391Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/choreboard-4246f {"projectId":"choreboard-4246f","projectNumber":"1091723608884","displayName":"ChoreBoard","name":"projects/choreboard-4246f","resources":{"hostingSite":"choreboard-4246f"},"state":"ACTIVE","etag":"1_dedec9c4-e89f-4484-9c34-c1448022fa49"}
+[info] 
+[info] === Deploying to 'choreboard-4246f'...
+[info] 
+[info] i  deploying functions, hosting 
+[debug] [2025-07-20T23:59:00.394Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.394Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.394Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2025-07-20T23:59:00.394Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudresourcemanager.googleapis.com x-goog-quota-user=projects/choreboard-4246f
+[debug] [2025-07-20T23:59:00.815Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudresourcemanager.googleapis.com 200
+[debug] [2025-07-20T23:59:00.815Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2025-07-20T23:59:00.819Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.819Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.819Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/choreboard-4246f [none]
+[debug] [2025-07-20T23:59:00.924Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/choreboard-4246f 200
+[debug] [2025-07-20T23:59:00.924Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/choreboard-4246f {"projectNumber":"1091723608884","projectId":"choreboard-4246f","lifecycleState":"ACTIVE","name":"ChoreBoard","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-07-20T22:31:04.844019Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[debug] [2025-07-20T23:59:00.925Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.925Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.925Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:00.925Z] Checked if tokens are valid: true, expires at: 1753056853272
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2025-07-20T23:59:00.926Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com [none]
+[debug] [2025-07-20T23:59:00.926Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/choreboard-4246f
+[debug] [2025-07-20T23:59:00.926Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/runtimeconfig.googleapis.com [none]
+[debug] [2025-07-20T23:59:00.926Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/runtimeconfig.googleapis.com x-goog-quota-user=projects/choreboard-4246f
+[debug] [2025-07-20T23:59:01.264Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com 200
+[debug] [2025-07-20T23:59:01.264Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com [omitted]
+[warn] !  functions: missing required API cloudfunctions.googleapis.com. Enabling now... 
+[debug] [2025-07-20T23:59:01.264Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:01.264Z] Checked if tokens are valid: true, expires at: 1753056853272
+[debug] [2025-07-20T23:59:01.264Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com:enable [none]
+[debug] [2025-07-20T23:59:01.264Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com:enable x-goog-quota-user=projects/choreboard-4246f
+[debug] [2025-07-20T23:59:01.305Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/runtimeconfig.googleapis.com 200
+[debug] [2025-07-20T23:59:01.305Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2025-07-20T23:59:01.811Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com:enable 200
+[debug] [2025-07-20T23:59:01.811Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/choreboard-4246f/services/cloudfunctions.googleapis.com:enable [omitted]
