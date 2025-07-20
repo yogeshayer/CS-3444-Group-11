@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "CS-3444-Group-11"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "cs-3444-group-11-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
