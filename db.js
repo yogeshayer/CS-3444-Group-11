@@ -1,18 +1,17 @@
-require('dotenv').config(); // Load .env variables
-const { MongoClient } = require('mongodb');
+// lib/db.js or lib/mongodb.js
+import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
+const options = {};
 
-const client = new MongoClient(uri);
+let client;
+let clientPromise;
 
-async function connectToDB() {
-  try {
-    await client.connect();
-    console.log("✅ Connected to MongoDB");
-    return client.db("choreboard"); // name of your database
-  } catch (err) {
-    console.error("❌ DB connection failed:", err);
-  }
+if (!process.env.MONGODB_URI) {
+  throw new Error("Please add your Mongo URI to .env.local");
 }
 
-module.exports = connectToDB;
+client = new MongoClient(uri, options);
+clientPromise = client.connect();
+
+export default clientPromise;
