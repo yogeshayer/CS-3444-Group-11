@@ -96,11 +96,29 @@ export default function RoommatesPage() {
           const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
           parsedData.invitationCode = newCode
           localStorage.setItem(`choreboardData_${user.id}`, JSON.stringify(parsedData))
+          console.log(`Generated new invitation code for admin ${user.name}: ${newCode}`)
         }
         setInvitationCode(parsedData.invitationCode)
+      } else {
+        // If no data exists, create initial data with invitation code
+        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+        const initialData = {
+          chores: [],
+          expenses: [],
+          users: [user],
+          invitationCode: newCode,
+          pendingRequests: [],
+          invitationRequests: [],
+          recentActivity: [],
+        }
+        localStorage.setItem(`choreboardData_${user.id}`, JSON.stringify(initialData))
+        setInvitationCode(newCode)
+        setUsers([user])
+        console.log(`Created initial data with invitation code for admin ${user.name}: ${newCode}`)
       }
     } catch (error) {
       console.error("Error loading roommates:", error)
+      toast.error("Failed to load roommate data")
     } finally {
       setIsLoading(false)
     }
@@ -283,6 +301,26 @@ export default function RoommatesPage() {
     setInvitationRequests(data.invitationRequests)
   }
 
+  const debugInvitationCode = () => {
+    console.log("=== INVITATION CODE DEBUG ===")
+    console.log("Current invitation code:", invitationCode)
+
+    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+    const admins = registeredUsers.filter((u: AppUser) => u.isAdmin)
+
+    console.log("All admins and their invitation codes:")
+    admins.forEach((admin) => {
+      const adminData = localStorage.getItem(`choreboardData_${admin.id}`)
+      if (adminData) {
+        const data = JSON.parse(adminData)
+        console.log(`Admin ${admin.name} (${admin.email}): ${data.invitationCode || "NO CODE"}`)
+      } else {
+        console.log(`Admin ${admin.name} (${admin.email}): NO DATA`)
+      }
+    })
+    console.log("=== END DEBUG ===")
+  }
+
   if (isLoading) {
     return (
       <SessionTimeoutProvider>
@@ -383,6 +421,9 @@ export default function RoommatesPage() {
                       </Button>
                       <Button variant="outline" size="sm" onClick={regenerateInvitationCode}>
                         Regenerate
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={debugInvitationCode} className="text-xs">
+                        Debug
                       </Button>
                     </div>
                   </div>
