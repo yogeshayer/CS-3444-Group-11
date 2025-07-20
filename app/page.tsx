@@ -1,39 +1,34 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DialogTrigger } from "@/components/ui/dialog"
+
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Separator } from "@/components/ui/separator"
+import { VisualEffects } from "@/components/visual-effects"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Home,
-  Mail,
-  Lock,
-  UserIcon,
-  Crown,
-  Users,
+  AlertCircle,
   CheckCircle,
+  Crown,
   Eye,
   EyeOff,
+  Home,
   Key,
+  Lock,
+  Mail,
   Send,
-  AlertCircle,
+  UserIcon,
+  Users,
 } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { VisualEffects } from "@/components/visual-effects"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface AppUser {
   id: string
@@ -160,12 +155,23 @@ export default function HomePage() {
           if (!u.isAdmin) return false
           const adminData = localStorage.getItem(`choreboardData_${u.id}`)
           if (!adminData) return false
-          const data = JSON.parse(adminData)
-          return data.invitationCode === formData.invitationCode
+          try {
+            const data = JSON.parse(adminData)
+            // Ensure invitation code exists for this admin
+            if (!data.invitationCode) {
+              const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+              data.invitationCode = newCode
+              localStorage.setItem(`choreboardData_${u.id}`, JSON.stringify(data))
+            }
+            return data.invitationCode === formData.invitationCode
+          } catch (error) {
+            console.error("Error parsing admin data:", error)
+            return false
+          }
         })
 
         if (!admin) {
-          toast.error("Invalid invitation code")
+          toast.error("Invalid invitation code. Please check with your admin for the correct code.")
           return
         }
 
@@ -197,13 +203,16 @@ export default function HomePage() {
           expenses: [],
           users: [newUser],
           invitationCode,
+          pendingRequests: [],
+          invitationRequests: [],
+          recentActivity: [],
         }
         localStorage.setItem(`choreboardData_${newUser.id}`, JSON.stringify(initialData))
 
         // Set session and login
         localStorage.setItem("sessionStart", Date.now().toString())
         localStorage.setItem("currentUser", JSON.stringify(newUser))
-        toast.success("Admin account created successfully!")
+        toast.success(`Admin account created successfully! Your invitation code is: ${invitationCode}`)
         router.push("/dashboard")
       } else {
         // Add to admin's pending requests
