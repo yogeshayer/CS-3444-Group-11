@@ -9,7 +9,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@datastax/astra-db-ts": "^2.0.1",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
