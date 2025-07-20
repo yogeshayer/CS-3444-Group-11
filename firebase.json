@@ -1,16 +1,16 @@
 {
   "hosting": {
-    "public": "y",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "site": "choreboard-4246f",
+    "public": ".next",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "function": "nextjsFunc"
       }
     ]
+  },
+  "functions": {
+    "source": "functions"
   }
 }
