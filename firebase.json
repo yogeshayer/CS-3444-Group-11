@@ -1,16 +1,7 @@
 {
   "hosting": {
     "site": "choreboard-4246f",
-    "public": ".next",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      {
-        "source": "**",
-        "function": "nextjsFunc"
-      }
-    ]
-  },
-  "functions": {
-    "source": "functions"
+    "public": "out",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   }
 }
