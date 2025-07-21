@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
+// next.config.js
+
 const nextConfig = {
+  output: 'export',
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -9,6 +12,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
+};
 
-export default nextConfig
+module.exports = nextConfig;
