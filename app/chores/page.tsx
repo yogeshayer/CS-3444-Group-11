@@ -1,11 +1,12 @@
 "use client"
-import { AppHeader } from "@/components/app-header";
-import { AppNavigation } from "@/components/app-navigation";
-import { SessionTimeoutProvider } from "@/components/session-timeout-provider";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent } from "@/components/ui/card";
+
+import { AppHeader } from "@/components/app-header"
+import { AppNavigation } from "@/components/app-navigation"
+import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -13,16 +14,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { VisualEffects } from "@/components/visual-effects";
-import { cn } from "@/lib/utils";
-import { addDays, addMonths, addWeeks, format } from "date-fns";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { VisualEffects } from "@/components/visual-effects"
+import { cn } from "@/lib/utils"
+import { addDays, addMonths, addWeeks, format } from "date-fns"
 import {
   AlertTriangle,
   CalendarIcon,
@@ -35,10 +36,10 @@ import {
   Search,
   Trash2,
   User,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+} from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 interface Chore {
   id: string
