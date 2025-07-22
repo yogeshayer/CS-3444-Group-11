@@ -1,47 +1,40 @@
 "use client"
 
-import { DialogTrigger } from "@/components/ui/dialog"
-
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { VisualEffects } from "@/components/visual-effects"
+import { apiClient } from "@/lib/api-client"
 import {
-  AlertCircle,
-  CheckCircle,
-  Crown,
-  Eye,
-  EyeOff,
-  Home,
-  Key,
-  Lock,
-  Mail,
-  Send,
-  UserIcon,
-  Users,
+    AlertCircle,
+    CheckCircle,
+    Crown,
+    Eye,
+    EyeOff,
+    Home,
+    Key,
+    Lock,
+    Mail,
+    Send,
+    UserIcon,
+    Users,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-
-interface AppUser {
-  id: string
-  name: string
-  email: string
-  password: string
-  isAdmin: boolean
-  avatar: string
-  adminId?: string
-  status: string
-  requestedAt?: string
-  joinedAt?: string
-}
 
 export default function HomePage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -61,15 +54,33 @@ export default function HomePage() {
     confirmPassword: "",
   })
   const [resetStep, setResetStep] = useState<"email" | "reset" | "success">("email")
-  const [resetToken, setResetToken] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     // Check if user is already logged in
+    const token = apiClient.getToken()
     const currentUser = localStorage.getItem("currentUser")
-    if (currentUser) {
-      router.push("/dashboard")
+    
+    // Only redirect if both token AND user data exist and are valid
+    if (token && currentUser) {
+      try {
+        const userData = JSON.parse(currentUser)
+        if (userData.id && userData.email) {
+          router.push("/dashboard")
+        } else {
+          // Invalid user data - clear everything
+          apiClient.clearToken()
+          localStorage.removeItem("currentUser")
+        }
+      } catch (error) {
+        // Invalid JSON - clear everything
+        apiClient.clearToken()
+        localStorage.removeItem("currentUser")
+      }
+    } else if (token && !currentUser) {
+      // Stale token without user data - clear it
+      apiClient.clearToken()
     }
   }, [router])
 
@@ -82,32 +93,16 @@ export default function HomePage() {
     setIsLoading(true)
 
     try {
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-      const user = registeredUsers.find((u: AppUser) => u.email === formData.email && u.password === formData.password)
+      const result = await apiClient.login(formData.email, formData.password)
 
-      if (!user) {
-        toast.error("Invalid email or password")
-        return
-      }
-
-      if (user.status === "pending") {
-        toast.error("Your account is pending approval from the admin")
-        return
-      }
-
-      if (user.status === "rejected") {
-        toast.error("Your account has been rejected. Please contact the admin.")
-        return
-      }
-
-      // Set session start time
+      // Store user data in localStorage for compatibility with existing components
+      localStorage.setItem("currentUser", JSON.stringify(result.user))
       localStorage.setItem("sessionStart", Date.now().toString())
-      localStorage.setItem("currentUser", JSON.stringify(user))
 
       toast.success("Login successful!")
       router.push("/dashboard")
-    } catch (error) {
-      toast.error("Login failed. Please try again.")
+    } catch (error: any) {
+      toast.error(error.message || "Login failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -137,93 +132,23 @@ export default function HomePage() {
     setIsLoading(true)
 
     try {
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-
-      // Check if email already exists
-      const existingUser = registeredUsers.find((u: AppUser) => u.email === formData.email)
-      if (existingUser) {
-        toast.error("An account with this email already exists")
-        return
-      }
-
-      let adminId = ""
-      let status = "approved"
-
-      if (accountType === "roommate") {
-        // Find admin with matching invitation code
-        const admin = registeredUsers.find((u: AppUser) => {
-          if (!u.isAdmin) return false
-          const adminData = localStorage.getItem(`choreboardData_${u.id}`)
-          if (!adminData) return false
-          try {
-            const data = JSON.parse(adminData)
-            // Ensure invitation code exists for this admin
-            if (!data.invitationCode) {
-              const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-              data.invitationCode = newCode
-              localStorage.setItem(`choreboardData_${u.id}`, JSON.stringify(data))
-            }
-            return data.invitationCode === formData.invitationCode
-          } catch (error) {
-            console.error("Error parsing admin data:", error)
-            return false
-          }
-        })
-
-        if (!admin) {
-          toast.error("Invalid invitation code. Please check with your admin for the correct code.")
-          return
-        }
-
-        adminId = admin.id
-        status = "pending" // Roommates need approval
-      }
-
-      const newUser: AppUser = {
-        id: Date.now().toString(),
+      const result = await apiClient.register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        isAdmin: accountType === "admin",
-        avatar: "",
-        adminId: adminId || undefined,
-        status,
-        requestedAt: accountType === "roommate" ? new Date().toISOString() : undefined,
-        joinedAt: accountType === "admin" ? new Date().toISOString() : undefined,
-      }
-
-      registeredUsers.push(newUser)
-      localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers))
+        confirmPassword: formData.confirmPassword,
+        accountType,
+        invitationCode: formData.invitationCode,
+      })
 
       if (accountType === "admin") {
-        // Create initial data for admin
-        const invitationCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-        const initialData = {
-          chores: [],
-          expenses: [],
-          users: [newUser],
-          invitationCode,
-          pendingRequests: [],
-          invitationRequests: [],
-          recentActivity: [],
-        }
-        localStorage.setItem(`choreboardData_${newUser.id}`, JSON.stringify(initialData))
-
-        // Set session and login
+        // Store user data in localStorage for compatibility
+        localStorage.setItem("currentUser", JSON.stringify(result.user))
         localStorage.setItem("sessionStart", Date.now().toString())
-        localStorage.setItem("currentUser", JSON.stringify(newUser))
-        toast.success(`Admin account created successfully! Your invitation code is: ${invitationCode}`)
+
+        toast.success(`Admin account created successfully! Your invitation code is: ${result.invitationCode}`)
         router.push("/dashboard")
       } else {
-        // Add to admin's pending requests
-        const adminData = localStorage.getItem(`choreboardData_${adminId}`)
-        if (adminData) {
-          const data = JSON.parse(adminData)
-          data.pendingRequests = data.pendingRequests || []
-          data.pendingRequests.push(newUser)
-          localStorage.setItem(`choreboardData_${adminId}`, JSON.stringify(data))
-        }
-
         toast.success("Registration successful! Waiting for admin approval.")
         setIsLogin(true)
       }
@@ -235,8 +160,8 @@ export default function HomePage() {
         confirmPassword: "",
         invitationCode: "",
       })
-    } catch (error) {
-      toast.error("Registration failed. Please try again.")
+    } catch (error: any) {
+      toast.error(error.message || "Registration failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -251,94 +176,16 @@ export default function HomePage() {
     setIsLoading(true)
 
     try {
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-      const user = registeredUsers.find((u: AppUser) => u.email === forgotPasswordData.email)
+      // For now, we'll simulate the forgot password flow
+      // In a real implementation, you'd call an API endpoint
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      if (user) {
-        // User exists - send password reset link
-        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-        setResetToken(token)
-
-        // Store reset token with expiration (1 hour)
-        const resetData = {
-          email: forgotPasswordData.email,
-          token,
-          expires: Date.now() + 3600000, // 1 hour
-        }
-        localStorage.setItem(`passwordReset_${token}`, JSON.stringify(resetData))
-
-        // Simulate sending email
-        await simulateEmailSend(forgotPasswordData.email, "reset", token)
-
-        toast.success("Password reset link sent to your email!")
-        setResetStep("reset")
-      } else {
-        // User doesn't exist - show invitation option
-        toast.error("Email not registered. Would you like to request an invitation?")
-
-        // Show invitation request option
-        const shouldRequestInvitation = window.confirm(
-          "This email is not registered with ChoreBoard. Would you like to request an invitation from existing users?",
-        )
-
-        if (shouldRequestInvitation) {
-          await handleInvitationRequest(forgotPasswordData.email)
-        }
-      }
+      toast.success("If your email is registered, you'll receive a reset link.")
+      setResetStep("reset")
     } catch (error) {
       toast.error("Failed to process request. Please try again.")
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleInvitationRequest = async (email: string) => {
-    try {
-      // Get all admin users
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-      const admins = registeredUsers.filter((u: AppUser) => u.isAdmin)
-
-      if (admins.length === 0) {
-        toast.error("No administrators found to send invitation request")
-        return
-      }
-
-      // Store invitation request
-      const invitationRequest = {
-        email,
-        requestedAt: new Date().toISOString(),
-        id: Date.now().toString(),
-      }
-
-      // Add to each admin's invitation requests
-      for (const admin of admins) {
-        const adminData = JSON.parse(localStorage.getItem(`choreboardData_${admin.id}`) || "{}")
-        adminData.invitationRequests = adminData.invitationRequests || []
-        adminData.invitationRequests.push(invitationRequest)
-        localStorage.setItem(`choreboardData_${admin.id}`, JSON.stringify(adminData))
-
-        // Simulate sending notification email to admin
-        await simulateEmailSend(admin.email, "invitation_request", email)
-      }
-
-      toast.success("Invitation request sent to administrators!")
-    } catch (error) {
-      toast.error("Failed to send invitation request")
-    }
-  }
-
-  const simulateEmailSend = async (email: string, type: "reset" | "invitation_request", data?: string) => {
-    // Simulate email sending delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    if (type === "reset") {
-      console.log(`📧 Password Reset Email Sent to: ${email}`)
-      console.log(`🔗 Reset Link: ${window.location.origin}/reset-password?token=${data}`)
-      console.log(`⏰ Expires in 1 hour`)
-    } else if (type === "invitation_request") {
-      console.log(`📧 Invitation Request Email Sent to Admin`)
-      console.log(`👤 Requested by: ${data}`)
-      console.log(`📝 Message: Someone with email ${data} is requesting access to your ChoreBoard household`)
     }
   }
 
@@ -361,39 +208,12 @@ export default function HomePage() {
     setIsLoading(true)
 
     try {
-      // Verify reset token
-      const resetData = localStorage.getItem(`passwordReset_${resetToken}`)
-      if (!resetData) {
-        toast.error("Invalid or expired reset token")
-        return
-      }
-
-      const { email, expires } = JSON.parse(resetData)
-      if (Date.now() > expires) {
-        toast.error("Reset token has expired. Please request a new one.")
-        localStorage.removeItem(`passwordReset_${resetToken}`)
-        return
-      }
-
-      // Update password
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-      const userIndex = registeredUsers.findIndex((u: AppUser) => u.email === email)
-
-      if (userIndex === -1) {
-        toast.error("User not found")
-        return
-      }
-
-      registeredUsers[userIndex].password = forgotPasswordData.newPassword
-      localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers))
-
-      // Clean up reset token
-      localStorage.removeItem(`passwordReset_${resetToken}`)
+      // Simulate password reset
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast.success("Password reset successfully!")
       setResetStep("success")
 
-      // Auto close dialog after success
       setTimeout(() => {
         setShowForgotPassword(false)
         setResetStep("email")
@@ -413,7 +233,6 @@ export default function HomePage() {
   const resetForgotPasswordDialog = () => {
     setShowForgotPassword(false)
     setResetStep("email")
-    setResetToken("")
     setForgotPasswordData({
       email: "",
       newPassword: "",

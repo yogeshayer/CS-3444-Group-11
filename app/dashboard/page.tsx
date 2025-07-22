@@ -1,32 +1,19 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { CheckCircle, DollarSign, Users, Plus, TrendingUp, Clock, Star, Award, Target, Bell } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { AppNavigation } from "@/components/app-navigation"
-import { HouseholdAlerts } from "@/components/household-alerts"
 import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { VisualEffects } from "@/components/visual-effects"
-import {
-  AlertTriangle,
-  Award,
-  Bell,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  Plus,
-  Star,
-  Target,
-  TrendingUp,
-  Users,
-  X,
-} from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
 
 interface User {
   id: string
@@ -67,25 +54,11 @@ interface Expense {
   settledBy?: string
 }
 
-interface MissedTask {
-  id: string
-  choreId: string
-  choreTitle: string
-  assignedTo: string
-  dueDate: string
-  missedDate: string
-  priority: "low" | "medium" | "high"
-  category: string
-}
-
 interface ChoreboardData {
   chores: Chore[]
   expenses: Expense[]
   users: User[]
-  invitationCode?: string
   pendingRequests?: any[]
-  missedTasks?: MissedTask[]
-  householdAlerts?: any[]
 }
 
 export default function DashboardPage() {
@@ -96,89 +69,82 @@ export default function DashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const currentUser = localStorage.getItem("currentUser")
-    if (!currentUser) {
-      router.push("/")
-      return
+    const loadDashboardData = async () => {
+      try {
+        const token = apiClient.getToken()
+        if (!token) {
+          router.push("/")
+          return
+        }
+
+        // Get current user from localStorage for compatibility
+        const currentUser = localStorage.getItem("currentUser")
+        if (currentUser) {
+          const userData = JSON.parse(currentUser)
+          setUser(userData)
+        }
+
+        // Load data from API
+        const [choresResult, expensesResult, usersResult, householdResult] = await Promise.all([
+          apiClient.getChores().catch(() => ({ chores: [] })),
+          apiClient.getExpenses().catch(() => ({ expenses: [] })),
+          apiClient.getUsers().catch(() => ({ users: [] })),
+          apiClient.getHousehold().catch(() => ({ household: null, pendingRequests: [] })),
+        ])
+
+        setData({
+          chores: choresResult.chores || [],
+          expenses: expensesResult.expenses || [],
+          users: usersResult.users || [],
+          pendingRequests: householdResult.pendingRequests || [],
+        })
+      } catch (error) {
+        console.error("Dashboard load error:", error)
+        toast.error("Failed to load dashboard data")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    const userData = JSON.parse(currentUser)
-    setUser(userData)
-
-    // Load data based on user type
-    const userDataKey = userData.isAdmin ? `choreboardData_${userData.id}` : `choreboardData_${userData.adminId}`
-    const choreboardData = localStorage.getItem(userDataKey)
-    if (choreboardData) {
-      const parsedData = JSON.parse(choreboardData)
-
-      // Initialize missing properties
-      if (!parsedData.missedTasks) {
-        parsedData.missedTasks = []
-      }
-      if (!parsedData.householdAlerts) {
-        parsedData.householdAlerts = []
-      }
-
-      setData(parsedData)
-
-      // Load pending requests for admin
-      if (userData.isAdmin) {
-        const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-        const pendingRequests = registeredUsers.filter((u: any) => u.adminId === userData.id && u.status === "pending")
-        setData((prev) => ({ ...prev, pendingRequests }))
-      }
-    }
-
-    setIsLoading(false)
+    loadDashboardData()
   }, [router])
 
-  const saveData = (newData: ChoreboardData) => {
-    if (!user) return
-    const userDataKey = user.isAdmin ? `choreboardData_${user.id}` : `choreboardData_${user.adminId}`
-    localStorage.setItem(userDataKey, JSON.stringify(newData))
-    localStorage.setItem("choreboardData", JSON.stringify(newData))
-    setData(newData)
-  }
+  const handleApproveRequest = async (requestId: string) => {
+    try {
+      await apiClient.approveUser(requestId)
 
-  const handleApproveRequest = (requestId: string) => {
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-    const updatedUsers = registeredUsers.map((u: any) => (u.id === requestId ? { ...u, status: "approved" } : u))
-    localStorage.setItem("registeredUsers", JSON.stringify(updatedUsers))
+      // Reload data
+      const householdResult = await apiClient.getHousehold()
+      const usersResult = await apiClient.getUsers()
 
-    // Add user to household
-    const approvedUser = updatedUsers.find((u: any) => u.id === requestId)
-    if (approvedUser) {
-      const newData = {
-        ...data,
-        users: [...data.users, approvedUser],
-        pendingRequests: data.pendingRequests?.filter((req) => req.id !== requestId) || [],
-      }
-      saveData(newData)
-      toast.success(`${approvedUser.name} has been approved and added to your household!`)
+      setData((prev) => ({
+        ...prev,
+        users: usersResult.users || [],
+        pendingRequests: householdResult.pendingRequests || [],
+      }))
+
+      toast.success("User approved successfully!")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to approve user")
     }
   }
 
-  const handleRejectRequest = (requestId: string) => {
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-    const rejectedUser = registeredUsers.find((u: any) => u.id === requestId)
-    const updatedUsers = registeredUsers.filter((u: any) => u.id !== requestId)
-    localStorage.setItem("registeredUsers", JSON.stringify(updatedUsers))
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await apiClient.rejectUser(requestId)
 
-    const newData = {
-      ...data,
-      pendingRequests: data.pendingRequests?.filter((req) => req.id !== requestId) || [],
-    }
-    setData(newData)
-    toast.success(`Request from ${rejectedUser?.name} has been rejected`)
-  }
+      // Reload data
+      const householdResult = await apiClient.getHousehold()
 
-  const handleDismissMissedTask = (taskId: string) => {
-    const newData = {
-      ...data,
-      missedTasks: data.missedTasks?.filter((task) => task.id !== taskId) || [],
+      setData((prev) => ({
+        ...prev,
+        pendingRequests: householdResult.pendingRequests || [],
+      }))
+
+      toast.success("User request rejected")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reject user")
     }
-    saveData(newData)
-    toast.success("Missed task dismissed")
   }
 
   // Calculate statistics
@@ -209,6 +175,8 @@ export default function DashboardPage() {
   }
 
   const getTopPerformer = () => {
+    if (data.users.length === 0) return null
+
     const userStats = data.users.map((user) => {
       const userChores = data.chores.filter((chore) => chore.assignedTo === user.id)
       const completedUserChores = userChores.filter((chore) => chore.completed)
@@ -223,7 +191,7 @@ export default function DashboardPage() {
     }, userStats[0])
   }
 
-  const topPerformer = data.users.length > 0 ? getTopPerformer() : null
+  const topPerformer = getTopPerformer()
 
   if (isLoading) {
     return (
@@ -309,52 +277,6 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Missed Tasks Alert */}
-            {data.missedTasks && data.missedTasks.length > 0 && (
-              <Card className="mb-6 border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10 animate-slide-in">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <div>
-                      <h3 className="font-medium text-red-800 dark:text-red-200">Missed Tasks Alert</h3>
-                      <p className="text-sm text-red-700 dark:text-red-300">
-                        {data.missedTasks.length} task(s) were not completed on time
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {data.missedTasks.slice(0, 3).map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border"
-                      >
-                        <div>
-                          <p className="font-medium text-sm">{task.choreTitle}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Assigned to {getUserName(task.assignedTo)} • Due:{" "}
-                            {new Date(task.dueDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDismissMissedTask(task.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    {data.missedTasks.length > 3 && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        And {data.missedTasks.length - 3} more...
-                      </p>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             )}
@@ -639,9 +561,6 @@ export default function DashboardPage() {
                     )}
                   </CardContent>
                 </Card>
-
-                {/* Household Alerts */}
-                <HouseholdAlerts user={user} data={data} onDataUpdate={saveData} />
               </div>
 
               {/* Right Column */}

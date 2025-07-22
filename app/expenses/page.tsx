@@ -1,13 +1,14 @@
 "use client"
 
-import { AppHeader } from "@/components/app-header"
-import { AppNavigation } from "@/components/app-navigation"
-import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -16,32 +17,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { VisualEffects } from "@/components/visual-effects"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
 import {
-  AlertTriangle,
-  CalendarIcon,
-  CheckCircle,
-  CreditCard,
-  DollarSign,
-  Edit,
-  Filter,
   Plus,
-  Receipt,
+  DollarSign,
+  Filter,
   Search,
+  CalendarIcon,
   Trash2,
+  Edit,
   User,
   Users,
+  Receipt,
+  CheckCircle,
+  AlertTriangle,
+  CreditCard,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { AppHeader } from "@/components/app-header"
+import { AppNavigation } from "@/components/app-navigation"
+import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import { VisualEffects } from "@/components/visual-effects"
 import { toast } from "sonner"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface Expense {
   id: string

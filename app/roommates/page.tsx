@@ -1,8 +1,22 @@
 "use client"
 
-import { AppHeader } from "@/components/app-header"
-import { AppNavigation } from "@/components/app-navigation"
-import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,25 +27,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Users, Crown, Mail, Calendar, MoreHorizontal, UserCheck, UserX, Copy, Key, Send, Clock } from "lucide-react"
+import { AppHeader } from "@/components/app-header"
+import { AppNavigation } from "@/components/app-navigation"
+import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
 import { VisualEffects } from "@/components/visual-effects"
-import { Calendar, Clock, Copy, Crown, Key, Mail, MoreHorizontal, Send, UserCheck, Users, UserX } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface AppUser {
@@ -84,7 +84,7 @@ export default function RoommatesPage() {
 
   const loadRoommates = (user: AppUser) => {
     try {
-      const data = localStorage.getItem(`choreboardData_${user.id}`)
+      const data = localStorage.getItem(`ChoreboardData_${user.id}`)
       if (data) {
         const parsedData = JSON.parse(data)
         setUsers(parsedData.users || [])
@@ -95,7 +95,7 @@ export default function RoommatesPage() {
         if (!parsedData.invitationCode) {
           const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
           parsedData.invitationCode = newCode
-          localStorage.setItem(`choreboardData_${user.id}`, JSON.stringify(parsedData))
+          localStorage.setItem(`ChoreboardData_${user.id}`, JSON.stringify(parsedData))
           console.log(`Generated new invitation code for admin ${user.name}: ${newCode}`)
         }
         setInvitationCode(parsedData.invitationCode)
@@ -111,7 +111,7 @@ export default function RoommatesPage() {
           invitationRequests: [],
           recentActivity: [],
         }
-        localStorage.setItem(`choreboardData_${user.id}`, JSON.stringify(initialData))
+        localStorage.setItem(`ChoreboardData_${user.id}`, JSON.stringify(initialData))
         setInvitationCode(newCode)
         setUsers([user])
         console.log(`Created initial data with invitation code for admin ${user.name}: ${newCode}`)
@@ -128,7 +128,7 @@ export default function RoommatesPage() {
     if (!currentUser) return
 
     try {
-      localStorage.setItem(`choreboardData_${currentUser.id}`, JSON.stringify(updatedData))
+      localStorage.setItem(`ChoreboardData_${currentUser.id}`, JSON.stringify(updatedData))
     } catch (error) {
       console.error("Error saving data:", error)
       toast.error("Failed to save changes")
@@ -139,7 +139,7 @@ export default function RoommatesPage() {
     if (!currentUser) return
 
     try {
-      const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser.id}`) || "{}")
+      const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser.id}`) || "{}")
       data.recentActivity = data.recentActivity || []
 
       data.recentActivity.unshift({
@@ -153,14 +153,14 @@ export default function RoommatesPage() {
       // Keep only last 50 activities
       data.recentActivity = data.recentActivity.slice(0, 50)
 
-      localStorage.setItem(`choreboardData_${currentUser.id}`, JSON.stringify(data))
+      localStorage.setItem(`ChoreboardData_${currentUser.id}`, JSON.stringify(data))
     } catch (error) {
       console.error("Error adding recent activity:", error)
     }
   }
 
   const approveUser = (userId: string) => {
-    const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser!.id}`) || "{}")
+    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
     const userToApprove = data.pendingRequests.find((u) => u.id === userId)
 
     if (!userToApprove) return
@@ -186,7 +186,7 @@ export default function RoommatesPage() {
   }
 
   const rejectUser = (userId: string) => {
-    const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser!.id}`) || "{}")
+    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
     const userToReject = data.pendingRequests.find((u) => u.id === userId)
 
     if (!userToReject) return
@@ -211,7 +211,7 @@ export default function RoommatesPage() {
   const removeUser = (userId: string) => {
     if (!userToRemove) return
 
-    const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser!.id}`) || "{}")
+    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
 
     // Remove from household users
     data.users = (data.users || []).filter((u: AppUser) => u.id !== userId)
@@ -239,7 +239,7 @@ export default function RoommatesPage() {
       // Simulate sending invitation email
       await simulateEmailSend(inviteEmail, "invitation", invitationCode)
 
-      const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser!.id}`) || "{}")
+      const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
       data.sentInvitations = data.sentInvitations || []
       data.sentInvitations.push({
         email: inviteEmail,
@@ -274,7 +274,7 @@ export default function RoommatesPage() {
 
   const regenerateInvitationCode = () => {
     const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-    const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser!.id}`) || "{}")
+    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
     data.invitationCode = newCode
     saveData(data)
     setInvitationCode(newCode)
@@ -283,7 +283,7 @@ export default function RoommatesPage() {
   }
 
   const respondToInvitationRequest = (requestId: string, email: string, approve: boolean) => {
-    const data = JSON.parse(localStorage.getItem(`choreboardData_${currentUser!.id}`) || "{}")
+    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
 
     if (approve) {
       // Send invitation
@@ -310,7 +310,7 @@ export default function RoommatesPage() {
 
     console.log("All admins and their invitation codes:")
     admins.forEach((admin) => {
-      const adminData = localStorage.getItem(`choreboardData_${admin.id}`)
+      const adminData = localStorage.getItem(`ChoreboardData_${admin.id}`)
       if (adminData) {
         const data = JSON.parse(adminData)
         console.log(`Admin ${admin.name} (${admin.email}): ${data.invitationCode || "NO CODE"}`)

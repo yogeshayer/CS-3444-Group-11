@@ -37,45 +37,37 @@ export function VisualEffects() {
   const floatingIcons = [CheckCircle, DollarSign, Users, Calendar, Clock, Award, Target, TrendingUp]
 
   return (
-    <>
-      {/* Animated background shapes with 3D effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Large floating orbs with 3D gradient effects */}
-        <div
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/30 via-purple-400/20 to-pink-400/30 rounded-full blur-3xl animate-pulse shadow-2xl transform-gpu"
-          style={{
-            animation: "float 20s ease-in-out infinite, pulse 4s ease-in-out infinite",
-            transform: "perspective(1000px) rotateX(15deg) rotateY(15deg)",
-          }}
-        />
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {/* Animated gradient orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse delay-2000" />
 
-        <div
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/30 via-cyan-400/20 to-teal-400/30 rounded-full blur-3xl animate-pulse delay-1000 shadow-2xl transform-gpu"
-          style={{
-            animation: "float 25s ease-in-out infinite reverse, pulse 6s ease-in-out infinite",
-            transform: "perspective(1000px) rotateX(-15deg) rotateY(-15deg)",
-          }}
-        />
-
-        <div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/15 via-violet-400/10 to-rose-400/15 rounded-full blur-3xl animate-pulse delay-500 shadow-xl transform-gpu"
-          style={{
-            animation: "float 30s ease-in-out infinite, pulse 8s ease-in-out infinite",
-            transform: "perspective(1000px) rotateX(10deg) rotateY(-10deg) translateX(-50%) translateY(-50%)",
-          }}
-        />
-
-        {/* Additional smaller orbs for depth */}
-        <div
-          className="absolute top-20 right-20 w-32 h-32 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 rounded-full blur-2xl animate-bounce shadow-lg transform-gpu"
-          style={{ animationDuration: "8s", animationDelay: "2s" }}
-        />
-
-        <div
-          className="absolute bottom-20 left-20 w-24 h-24 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-2xl animate-bounce shadow-lg transform-gpu"
-          style={{ animationDuration: "6s", animationDelay: "4s" }}
-        />
+      {/* Floating particles */}
+      <div className="absolute inset-0">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-blue-400/30 rounded-full animate-float"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 10}s`,
+              animationDuration: `${10 + Math.random() * 20}s`,
+            }}
+          />
+        ))}
       </div>
+
+      {/* Additional smaller orbs for depth */}
+      <div
+        className="absolute top-20 right-20 w-32 h-32 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 rounded-full blur-2xl animate-bounce shadow-lg transform-gpu"
+        style={{ animationDuration: "8s", animationDelay: "2s" }}
+      />
+      <div
+        className="absolute bottom-20 left-20 w-24 h-24 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-2xl animate-bounce shadow-lg transform-gpu"
+        style={{ animationDuration: "6s", animationDelay: "4s" }}
+      />
 
       {/* Falling particles (flowers, stars, etc.) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -276,7 +268,12 @@ export function VisualEffects() {
             transform: perspective(1000px) rotateX(270deg) rotateY(135deg) rotateZ(270deg) translateY(-30px); 
           }
         }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
       `}</style>
-    </>
+    </div>
   )
 }

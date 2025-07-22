@@ -1,7 +1,8 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,8 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { AlertCircle, Bell, Calendar, CheckCircle, DollarSign } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Bell, CheckCircle, AlertCircle, DollarSign, Calendar } from "lucide-react"
 
 interface Notification {
   id: string
@@ -22,166 +22,34 @@ interface Notification {
   read: boolean
 }
 
-interface NotificationPanelProps {
-  user?: any
-  data?: any
-}
-
-export function NotificationPanel({ user, data }: NotificationPanelProps) {
+export function NotificationPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
 
-  const generateNotifications = (userData: any, choreboardData: any): Notification[] => {
-    if (!userData || !choreboardData) return []
-
-    const notifications: Notification[] = []
-    const now = new Date()
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-
-    // Check for chores due soon (within 24 hours)
-    choreboardData.chores?.forEach((chore: any) => {
-      if (!chore.completed) {
-        const dueDate = new Date(chore.dueDate)
-        const isAssignedToUser = chore.assignedTo === userData.id
-        const isDueSoon = dueDate <= tomorrow && dueDate > now
-
-        if (isDueSoon && isAssignedToUser) {
-          notifications.push({
-            id: `chore-due-${chore.id}`,
-            type: "chore",
-            title: "Chore Due Soon",
-            message: `${chore.title} is due ${dueDate.toLocaleDateString()}`,
-            time: new Date(now.getTime() - Math.random() * 2 * 60 * 60 * 1000).toISOString(),
-            read: false,
-          })
-        }
-
-        // Check for overdue chores
-        if (dueDate < now && isAssignedToUser) {
-          notifications.push({
-            id: `chore-overdue-${chore.id}`,
-            type: "reminder",
-            title: "Chore Overdue",
-            message: `${chore.title} was due ${dueDate.toLocaleDateString()}`,
-            time: new Date(now.getTime() - Math.random() * 4 * 60 * 60 * 1000).toISOString(),
-            read: false,
-          })
-        }
-      }
-    })
-
-    // Check for recent expenses (last 24 hours)
-    choreboardData.expenses?.forEach((expense: any) => {
-      const expenseDate = new Date(expense.date)
-      const isRecent = now.getTime() - expenseDate.getTime() < 24 * 60 * 60 * 1000
-      const isInvolved = expense.paidBy === userData.id || expense.splitBetween?.includes(userData.id)
-
-      if (isRecent && isInvolved && expense.paidBy !== userData.id) {
-        notifications.push({
-          id: `expense-${expense.id}`,
-          type: "expense",
-          title: "New Expense Added",
-          message: `${expense.title} expense of $${expense.amount.toFixed(2)} was added`,
-          time: expenseDate.toISOString(),
-          read: false,
-        })
-      }
-    })
-
-    // Check for completed chores (achievements)
-    const completedChoresThisWeek = choreboardData.chores?.filter((chore: any) => {
-      if (!chore.completed || chore.completedBy !== userData.id) return false
-      const completedDate = new Date(chore.completedAt)
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      return completedDate >= weekAgo
-    })
-
-    if (completedChoresThisWeek?.length >= 3) {
-      notifications.push({
-        id: `achievement-weekly-${now.getTime()}`,
-        type: "achievement",
-        title: "Achievement Unlocked!",
-        message: `You've completed ${completedChoresThisWeek.length} chores this week`,
-        time: new Date(now.getTime() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-        read: false,
-      })
-    }
-
-    // Check for household alerts
-    choreboardData.householdAlerts?.forEach((alert: any) => {
-      const alertDate = new Date(alert.reportedAt)
-      const isRecent = now.getTime() - alertDate.getTime() < 24 * 60 * 60 * 1000
-
-      if (isRecent && alert.status === "open") {
-        notifications.push({
-          id: `alert-${alert.id}`,
-          type: "reminder",
-          title: "New Household Alert",
-          message: `${alert.title} - ${alert.priority} priority`,
-          time: alertDate.toISOString(),
-          read: false,
-        })
-      }
-    })
-
-    // Sort by time (newest first) and limit to 10
-    return notifications.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10)
-  }
-
   useEffect(() => {
-    if (!user) return
+    // Clear any existing notifications and start fresh
+    const currentUser = localStorage.getItem("currentUser")
+    if (currentUser) {
+      const userData = JSON.parse(currentUser)
+      const notificationKey = `notifications_${userData.id}`
 
-    // Load existing notifications from localStorage
-    const savedNotifications = localStorage.getItem(`notifications_${user.id}`)
-    let existingNotifications: Notification[] = []
+      // Clear existing notifications
+      localStorage.removeItem(notificationKey)
 
-    if (savedNotifications) {
-      existingNotifications = JSON.parse(savedNotifications)
+      // Initialize with empty notifications
+      setNotifications([])
+      setUnreadCount(0)
     }
-
-    // Generate new notifications based on current data
-    const newNotifications = generateNotifications(user, data)
-
-    // Merge with existing notifications, avoiding duplicates
-    const allNotifications = [...existingNotifications]
-
-    newNotifications.forEach((newNotif) => {
-      const exists = allNotifications.some((existing) => existing.id === newNotif.id)
-      if (!exists) {
-        allNotifications.push(newNotif)
-      }
-    })
-
-    // Sort by time and limit
-    const finalNotifications = allNotifications
-      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-      .slice(0, 15)
-
-    setNotifications(finalNotifications)
-    setUnreadCount(finalNotifications.filter((n) => !n.read).length)
-
-    // Save to localStorage
-    localStorage.setItem(`notifications_${user.id}`, JSON.stringify(finalNotifications))
-  }, [user, data])
+  }, [])
 
   const markAsRead = (notificationId: string) => {
-    const updatedNotifications = notifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
-    setNotifications(updatedNotifications)
-    setUnreadCount(Math.max(0, unreadCount - 1))
-
-    if (user) {
-      localStorage.setItem(`notifications_${user.id}`, JSON.stringify(updatedNotifications))
-    }
+    setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)))
+    setUnreadCount((prev) => Math.max(0, prev - 1))
   }
 
   const markAllAsRead = () => {
-    const updatedNotifications = notifications.map((n) => ({ ...n, read: true }))
-    setNotifications(updatedNotifications)
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
     setUnreadCount(0)
-
-    if (user) {
-      localStorage.setItem(`notifications_${user.id}`, JSON.stringify(updatedNotifications))
-    }
   }
 
   const getNotificationIcon = (type: string) => {
@@ -256,7 +124,11 @@ export function NotificationPanel({ user, data }: NotificationPanelProps) {
             ))}
           </div>
         ) : (
-          <div className="p-4 text-center text-sm text-muted-foreground">No notifications yet</div>
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No notifications yet</p>
+            <p className="text-xs mt-1">You'll see updates about chores and expenses here</p>
+          </div>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
