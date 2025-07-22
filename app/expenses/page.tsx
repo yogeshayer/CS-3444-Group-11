@@ -100,6 +100,12 @@ export default function ExpensesPage() {
   })
   const router = useRouter()
 
+  // Safe number formatting function
+  const formatAmount = (amount: any): string => {
+    const num = typeof amount === 'number' ? amount : parseFloat(amount) || 0
+    return num.toFixed(2)
+  }
+
   useEffect(() => {
     const currentUser = localStorage.getItem("currentUser")
     if (!currentUser) {
@@ -195,10 +201,11 @@ export default function ExpensesPage() {
     }
 
     const paymentAmount = Number.parseFloat(newPayment.amount)
-    const userShare = selectedExpenseForPayment.amount / selectedExpenseForPayment.splitBetween.length
+    const expenseAmount = typeof selectedExpenseForPayment.amount === 'number' ? selectedExpenseForPayment.amount : parseFloat(selectedExpenseForPayment.amount) || 0
+    const userShare = expenseAmount / (selectedExpenseForPayment.splitBetween?.length || 1)
 
     if (paymentAmount > userShare) {
-      toast.error(`Payment amount cannot exceed your share of $${userShare.toFixed(2)}`)
+      toast.error(`Payment amount cannot exceed your share of $${formatAmount(userShare)}`)
       return
     }
 
@@ -212,11 +219,15 @@ export default function ExpensesPage() {
     }
 
     // Update expense with new payment
-    const updatedExpenses = data.expenses.map((expense) => {
+    const updatedExpenses = (data.expenses || []).map((expense) => {
       if (expense.id === selectedExpenseForPayment.id) {
         const updatedPayments = [...(expense.payments || []), payment]
-        const totalPaid = updatedPayments.reduce((sum, p) => sum + p.amount, 0)
-        const totalOwed = expense.amount - expense.amount / expense.splitBetween.length // Subtract original payer's share
+        const totalPaid = updatedPayments.reduce((sum, p) => {
+          const pAmount = typeof p.amount === 'number' ? p.amount : parseFloat(p.amount) || 0
+          return sum + pAmount
+        }, 0)
+        const eAmount = typeof expense.amount === 'number' ? expense.amount : parseFloat(expense.amount) || 0
+        const totalOwed = eAmount - eAmount / (expense.splitBetween?.length || 1) // Subtract original payer's share
 
         return {
           ...expense,
@@ -319,22 +330,29 @@ export default function ExpensesPage() {
   }
 
   const calculateSplitAmount = (expense: Expense) => {
-    return expense.amount / expense.splitBetween.length
+    const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(expense.amount) || 0
+    return amount / (expense.splitBetween?.length || 1)
   }
 
   const calculateUserOwedAmount = (expense: Expense, userId: string) => {
-    if (!expense.splitBetween.includes(userId) || expense.paidBy === userId) return 0
+    if (!expense.splitBetween?.includes(userId) || expense.paidBy === userId) return 0
 
     const userShare = calculateSplitAmount(expense)
     const userPayments = (expense.payments || [])
       .filter((p) => p.paidBy === userId)
-      .reduce((sum, p) => sum + p.amount, 0)
+      .reduce((sum, p) => {
+        const paymentAmount = typeof p.amount === 'number' ? p.amount : parseFloat(p.amount) || 0
+        return sum + paymentAmount
+      }, 0)
 
     return Math.max(0, userShare - userPayments)
   }
 
   const getTotalPayments = (expense: Expense) => {
-    return (expense.payments || []).reduce((sum, payment) => sum + payment.amount, 0)
+    return (expense.payments || []).reduce((sum, payment) => {
+      const paymentAmount = typeof payment.amount === 'number' ? payment.amount : parseFloat(payment.amount) || 0
+      return sum + paymentAmount
+    }, 0)
   }
 
   const handleSplitBetweenChange = (userId: string, checked: boolean) => {
@@ -560,10 +578,10 @@ export default function ExpensesPage() {
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <p className="text-sm text-muted-foreground">Your share:</p>
                       <p className="text-lg font-semibold">
-                        ${calculateSplitAmount(selectedExpenseForPayment).toFixed(2)}
+                        ${formatAmount(calculateSplitAmount(selectedExpenseForPayment))}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Amount owed: ${calculateUserOwedAmount(selectedExpenseForPayment, user.id).toFixed(2)}
+                        Amount owed: ${formatAmount(calculateUserOwedAmount(selectedExpenseForPayment, user.id))}
                       </p>
                     </div>
 
@@ -682,7 +700,7 @@ export default function ExpensesPage() {
                               </h3>
                               <Badge variant="outline">{expense.category}</Badge>
                               <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                ${expense.amount.toFixed(2)}
+                                ${formatAmount(expense.amount)}
                               </Badge>
                               {expense.settled && (
                                 <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -717,7 +735,7 @@ export default function ExpensesPage() {
                                 <div className="flex flex-wrap gap-1">
                                   {expense.splitBetween.map((userId) => (
                                     <Badge key={userId} variant="secondary" className="text-xs">
-                                      {getUserName(userId)} (${calculateSplitAmount(expense).toFixed(2)})
+                                      {getUserName(userId)} (${formatAmount(calculateSplitAmount(expense))})
                                     </Badge>
                                   ))}
                                 </div>
@@ -734,7 +752,7 @@ export default function ExpensesPage() {
                                     {expense.payments.map((payment) => (
                                       <div key={payment.id} className="flex items-center justify-between text-xs">
                                         <span>
-                                          {getUserName(payment.paidBy)} paid ${payment.amount.toFixed(2)}
+                                          {getUserName(payment.paidBy)} paid ${formatAmount(payment.amount)}
                                         </span>
                                         <span className="text-muted-foreground">
                                           {new Date(payment.date).toLocaleDateString()}
@@ -745,7 +763,7 @@ export default function ExpensesPage() {
                                   <div className="mt-2 pt-2 border-t border-border">
                                     <div className="flex justify-between text-sm font-medium">
                                       <span>Total Paid:</span>
-                                      <span>${getTotalPayments(expense).toFixed(2)}</span>
+                                      <span>${formatAmount(getTotalPayments(expense))}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -757,14 +775,14 @@ export default function ExpensesPage() {
                                   <div className="flex justify-between items-center text-sm">
                                     <span className="text-blue-800 dark:text-blue-200">Your share:</span>
                                     <span className="font-medium text-blue-800 dark:text-blue-200">
-                                      ${calculateSplitAmount(expense).toFixed(2)}
+                                      ${formatAmount(calculateSplitAmount(expense))}
                                     </span>
                                   </div>
                                   {calculateUserOwedAmount(expense, user.id) > 0 && (
                                     <div className="flex justify-between items-center text-sm mt-1">
                                       <span className="text-red-600 dark:text-red-400">Amount owed:</span>
                                       <span className="font-medium text-red-600 dark:text-red-400">
-                                        ${calculateUserOwedAmount(expense, user.id).toFixed(2)}
+                                        ${formatAmount(calculateUserOwedAmount(expense, user.id))}
                                       </span>
                                     </div>
                                   )}
@@ -968,7 +986,7 @@ export default function ExpensesPage() {
                                       </div>
                                       <p className="text-xs text-muted-foreground">
                                         {editingExpense.splitBetween.length > 0
-                                          ? `Each person pays: $${(editingExpense.amount / editingExpense.splitBetween.length).toFixed(2)}`
+                                          ? `Each person pays: $${formatAmount((typeof editingExpense.amount === 'number' ? editingExpense.amount : parseFloat(editingExpense.amount) || 0) / editingExpense.splitBetween.length)}`
                                           : "Select members to split the expense"}
                                       </p>
                                     </div>
