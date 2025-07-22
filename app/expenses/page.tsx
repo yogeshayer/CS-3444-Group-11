@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { VisualEffects } from "@/components/visual-effects"
 import { cn } from "@/lib/utils"
+import { format } from "date-fns"
 import {
     AlertTriangle,
     CalendarIcon,
@@ -73,18 +74,6 @@ interface ChoreboardData {
   payments?: Payment[]
 }
 
-
-
-// Simple date formatter to replace date-fns
-const formatDate = (date: Date | string) => {
-  const d = new Date(date)
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
-}
-
 export default function ExpensesPage() {
   const [user, setUser] = useState<any | null>(null)
   const [data, setData] = useState<ChoreboardData>({ chores: [], expenses: [], users: [] })
@@ -112,48 +101,39 @@ export default function ExpensesPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const loadExpensesData = async () => {
-      try {
-        const currentUser = localStorage.getItem("currentUser")
-        if (!currentUser) {
-          router.push("/")
-          return
-        }
-
-        const userData = JSON.parse(currentUser)
-        setUser(userData)
-
-        // Load data from localStorage for now
-        const userDataKey = userData.isAdmin ? `choreboardData_${userData.id}` : `choreboardData_${userData.adminId}`
-        const storedData = localStorage.getItem(userDataKey) || localStorage.getItem("choreboardData")
-
-        if (storedData) {
-          const parsedData = JSON.parse(storedData)
-          setData({
-            chores: parsedData.chores || [],
-            expenses: parsedData.expenses || [],
-            users: parsedData.users || [],
-            payments: parsedData.payments || [],
-          })
-        } else {
-          // Initialize with default data
-          const defaultData = {
-            chores: [],
-            expenses: [],
-            users: [userData],
-            payments: [],
-          }
-          setData(defaultData)
-        }
-      } catch (error) {
-        console.error("Error loading expenses data:", error)
-        toast.error("Failed to load expenses data")
-      } finally {
-        setIsLoading(false)
-      }
+    const currentUser = localStorage.getItem("currentUser")
+    if (!currentUser) {
+      router.push("/")
+      return
     }
 
-    loadExpensesData()
+    const userData = JSON.parse(currentUser)
+    setUser(userData)
+
+    // Load data from localStorage for now
+    const userDataKey = userData.isAdmin ? `choreboardData_${userData.id}` : `choreboardData_${userData.adminId}`
+    const storedData = localStorage.getItem(userDataKey) || localStorage.getItem("choreboardData")
+
+    if (storedData) {
+      const parsedData = JSON.parse(storedData)
+      setData({
+        chores: parsedData.chores || [],
+        expenses: parsedData.expenses || [],
+        users: parsedData.users || [],
+        payments: parsedData.payments || [],
+      })
+    } else {
+      // Initialize with default data
+      const defaultData = {
+        chores: [],
+        expenses: [],
+        users: [userData],
+        payments: [],
+      }
+      setData(defaultData)
+    }
+
+    setIsLoading(false)
   }, [router])
 
   const saveData = (newData: ChoreboardData) => {
@@ -507,7 +487,7 @@ export default function ExpensesPage() {
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {newExpense.date ? formatDate(newExpense.date) : <span>Pick a date</span>}
+                              {newExpense.date ? format(newExpense.date, "PPP") : <span>Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -947,7 +927,7 @@ export default function ExpensesPage() {
                                             >
                                               <CalendarIcon className="mr-2 h-4 w-4" />
                                               {editingExpense.date ? (
-                                                formatDate(new Date(editingExpense.date))
+                                                format(new Date(editingExpense.date), "PPP")
                                               ) : (
                                                 <span>Pick a date</span>
                                               )}
