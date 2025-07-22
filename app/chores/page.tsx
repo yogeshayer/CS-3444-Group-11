@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,17 +25,17 @@ import { VisualEffects } from "@/components/visual-effects"
 import { cn } from "@/lib/utils"
 import { addDays, addMonths, addWeeks, format } from "date-fns"
 import {
-  AlertTriangle,
-  CalendarIcon,
-  CheckCircle,
-  Clock,
-  Edit,
-  Filter,
-  Plus,
-  Repeat,
-  Search,
-  Trash2,
-  User,
+    AlertTriangle,
+    CalendarIcon,
+    CheckCircle,
+    Clock,
+    Edit,
+    Filter,
+    Plus,
+    Repeat,
+    Search,
+    Trash2,
+    User,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -100,34 +100,47 @@ export default function ChoresPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const currentUser = localStorage.getItem("currentUser")
-    if (!currentUser) {
-      router.push("/")
-      return
-    }
+    const loadChoresData = async () => {
+      try {
+        const currentUser = localStorage.getItem("currentUser")
+        if (!currentUser) {
+          router.push("/")
+          return
+        }
 
-    const userData = JSON.parse(currentUser)
-    setUser(userData)
+        const userData = JSON.parse(currentUser)
+        setUser(userData)
 
-    // Load user's data
-    const userDataKey = userData.isAdmin ? `choreboardData_${userData.id}` : `choreboardData_${userData.adminId}`
-    const choreboardData = localStorage.getItem(userDataKey)
-    if (choreboardData) {
-      const parsedData = JSON.parse(choreboardData)
-      // Initialize missedTasks if it doesn't exist
-      if (!parsedData.missedTasks) {
-        parsedData.missedTasks = []
+        // Load data from API
+        const [choresResult, householdResult] = await Promise.all([
+          fetch('/api/chores').then(res => res.ok ? res.json() : { chores: [] }).catch(() => ({ chores: [] })),
+          fetch('/api/household').then(res => res.ok ? res.json() : { members: [] }).catch(() => ({ members: [] }))
+        ])
+
+        const choreData = {
+          chores: choresResult.chores || [],
+          expenses: [],
+          users: householdResult.members || [],
+          missedTasks: []
+        }
+
+        setData(choreData)
+
+        // Check for overdue tasks and add to missed tasks
+        checkOverdueTasks(choreData, userData)
+
+        // Check for recurring chores that need to be recreated
+        checkRecurringChores(choreData, userData)
+
+      } catch (error) {
+        console.error('Error loading chores data:', error)
+        toast.error('Failed to load chores data')
+      } finally {
+        setIsLoading(false)
       }
-      setData(parsedData)
-
-      // Check for overdue tasks and add to missed tasks
-      checkOverdueTasks(parsedData, userData)
-
-      // Check for recurring chores that need to be recreated
-      checkRecurringChores(parsedData, userData)
     }
 
-    setIsLoading(false)
+    loadChoresData()
   }, [router])
 
   const checkOverdueTasks = (currentData: ChoreboardData, currentUser: any) => {
@@ -226,51 +239,62 @@ export default function ChoresPage() {
     setData(newData)
   }
 
-  const handleAddChore = () => {
+  const handleAddChore = async () => {
     if (!newChore.title || !newChore.assignedTo) {
       toast.error("Please fill in all required fields")
       return
     }
 
-    const nextDueDate = newChore.isRecurring
-      ? calculateNextDueDate(newChore.dueDate.toISOString(), newChore.recurringType, newChore.recurringInterval)
-      : undefined
+    try {
+      const choreData = {
+        title: newChore.title,
+        description: newChore.description,
+        assignedTo: newChore.assignedTo,
+        dueDate: newChore.dueDate.toISOString(),
+        priority: newChore.priority,
+        category: newChore.category,
+        recurring: newChore.isRecurring ? {
+          type: newChore.recurringType,
+          interval: newChore.recurringInterval
+        } : null
+      }
 
-    const chore: Chore = {
-      id: Date.now().toString(),
-      title: newChore.title,
-      description: newChore.description,
-      assignedTo: newChore.assignedTo,
-      dueDate: newChore.dueDate.toISOString(),
-      completed: false,
-      priority: newChore.priority,
-      category: newChore.category,
-      createdAt: new Date().toISOString(),
-      isRecurring: newChore.isRecurring,
-      recurringType: newChore.isRecurring ? newChore.recurringType : undefined,
-      recurringInterval: newChore.isRecurring ? newChore.recurringInterval : undefined,
-      nextDueDate,
+      const response = await fetch('/api/chores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(choreData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create chore')
+      }
+
+      const result = await response.json()
+      
+      // Refresh the data
+      const choresResult = await fetch('/api/chores').then(res => res.json()).catch(() => ({ chores: [] }))
+      setData(prev => ({ ...prev, chores: choresResult.chores || [] }))
+
+      setNewChore({
+        title: "",
+        description: "",
+        assignedTo: "",
+        dueDate: new Date(),
+        priority: "medium",
+        category: "general",
+        isRecurring: false,
+        recurringType: "weekly",
+        recurringInterval: 1,
+      })
+      setIsDialogOpen(false)
+      toast.success("Chore added successfully!")
+
+    } catch (error) {
+      console.error('Error adding chore:', error)
+      toast.error('Failed to add chore')
     }
-
-    const newData = {
-      ...data,
-      chores: [...data.chores, chore],
-    }
-
-    saveData(newData)
-    setNewChore({
-      title: "",
-      description: "",
-      assignedTo: "",
-      dueDate: new Date(),
-      priority: "medium",
-      category: "general",
-      isRecurring: false,
-      recurringType: "weekly",
-      recurringInterval: 1,
-    })
-    setIsDialogOpen(false)
-    toast.success("Chore added successfully!")
   }
 
   const handleEditChore = () => {

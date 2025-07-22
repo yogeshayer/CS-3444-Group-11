@@ -1,19 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { CheckCircle, DollarSign, Users, Plus, TrendingUp, Clock, Star, Award, Target, Bell } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { AppNavigation } from "@/components/app-navigation"
 import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { VisualEffects } from "@/components/visual-effects"
-import { toast } from "sonner"
-import Link from "next/link"
 import { apiClient } from "@/lib/api-client"
+import { Award, Bell, CheckCircle, Clock, DollarSign, Plus, Star, Target, TrendingUp, Users } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 interface User {
   id: string
@@ -565,6 +565,66 @@ export default function DashboardPage() {
 
               {/* Right Column */}
               <div className="space-y-8">
+                {/* Household Members */}
+                <Card
+                  className="animate-slide-in transform hover:shadow-xl transition-all duration-300"
+                  style={{ animationDelay: "0.6s" }}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-600" />
+                      Household Members
+                    </CardTitle>
+                    <CardDescription>Your roommates and household info</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {data.users.length > 0 ? (
+                      <div className="space-y-3">
+                        {data.users.slice(0, 4).map((member: User) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200"
+                          >
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-full flex items-center justify-center text-sm font-medium">
+                              {member.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm">{member.name}</p>
+                                {member.isAdmin && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Admin
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{member.email}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {data.users.length > 4 && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            +{data.users.length - 4} more members
+                          </p>
+                        )}
+                        <Link href="/roommates">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2 transform hover:scale-105 transition-transform duration-200"
+                          >
+                            View All Members
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No household members found</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Quick Actions */}
                 <Card
                   className="animate-slide-in transform hover:shadow-xl transition-all duration-300"
@@ -599,7 +659,7 @@ export default function DashboardPage() {
                         className="w-full justify-start bg-transparent transform hover:scale-105 transition-all duration-200 hover:shadow-md"
                       >
                         <Users className="w-4 h-4 mr-2" />
-                        Manage Roommates
+                        {user?.isAdmin ? "Manage Roommates" : "View Roommates"}
                       </Button>
                     </Link>
                   </CardContent>
