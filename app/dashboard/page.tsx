@@ -68,6 +68,12 @@ export default function DashboardPage() {
   const [showPendingRequests, setShowPendingRequests] = useState(false)
   const router = useRouter()
 
+  // Safe number formatting function
+  const formatAmount = (amount: any): string => {
+    const num = typeof amount === 'number' ? amount : parseFloat(amount) || 0
+    return num.toFixed(2)
+  }
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -152,7 +158,10 @@ export default function DashboardPage() {
   const completedChores = data.chores.filter((chore) => chore.completed).length
   const choreCompletionRate = totalChores > 0 ? Math.round((completedChores / totalChores) * 100) : 0
 
-  const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const totalExpenses = (data.expenses || []).reduce((sum, expense) => {
+    const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(expense.amount) || 0
+    return sum + amount
+  }, 0)
   const settledExpenses = data.expenses.filter((expense) => expense.settled).length
   const expenseSettlementRate =
     data.expenses.length > 0 ? Math.round((settledExpenses / data.expenses.length) * 100) : 0
@@ -166,7 +175,8 @@ export default function DashboardPage() {
   )
   const myOwedAmount = myExpenses.reduce((sum, expense) => {
     if (expense.paidBy === user?.id) return sum
-    return sum + expense.amount / expense.splitBetween.length
+    const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(expense.amount) || 0
+    return sum + amount / (expense.splitBetween?.length || 1)
   }, 0)
 
   const getUserName = (userId: string) => {
@@ -313,7 +323,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
-                      <p className="text-2xl font-bold text-foreground">${totalExpenses.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-foreground">${formatAmount(totalExpenses)}</p>
                       <p className="text-xs text-muted-foreground">{settledExpenses} settled</p>
                     </div>
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900 dark:to-cyan-900 rounded-full flex items-center justify-center shadow-lg transform hover:rotate-12 transition-transform duration-300">
@@ -503,9 +513,9 @@ export default function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {data.expenses.length > 0 ? (
+                    {(data.expenses || []).length > 0 ? (
                       <div className="space-y-3">
-                        {data.expenses
+                        {(data.expenses || [])
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .slice(0, 5)
                           .map((expense) => (
@@ -531,20 +541,20 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-medium text-sm">${expense.amount.toFixed(2)}</p>
-                                {expense.splitBetween.includes(user.id) && (
+                                <p className="font-medium text-sm">${formatAmount(expense.amount)}</p>
+                                {expense.splitBetween?.includes(user.id) && (
                                   <p className="text-xs text-muted-foreground">
-                                    Your share: ${(expense.amount / expense.splitBetween.length).toFixed(2)}
+                                    Your share: ${formatAmount((typeof expense.amount === 'number' ? expense.amount : parseFloat(expense.amount) || 0) / (expense.splitBetween?.length || 1))}
                                   </p>
                                 )}
                               </div>
                             </div>
                           ))}
-                        {data.expenses.length > 5 && (
-                          <p className="text-sm text-muted-foreground text-center">
-                            And {data.expenses.length - 5} more expenses...
-                          </p>
-                        )}
+                          {(data.expenses || []).length > 5 && (
+                            <p className="text-sm text-muted-foreground text-center">
+                              And {(data.expenses || []).length - 5} more expenses...
+                            </p>
+                          )}
                       </div>
                     ) : (
                       <div className="text-center py-8">
@@ -715,7 +725,7 @@ export default function DashboardPage() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Amount Owed:</span>
-                          <span className="font-medium text-red-600">${myOwedAmount.toFixed(2)}</span>
+                          <span className="font-medium text-red-600">${formatAmount(myOwedAmount)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Unsettled Expenses:</span>
