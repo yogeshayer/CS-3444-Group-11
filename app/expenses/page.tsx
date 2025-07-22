@@ -9,12 +9,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,19 +26,19 @@ import { apiClient } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import {
-    AlertTriangle,
-    CalendarIcon,
-    CheckCircle,
-    CreditCard,
-    DollarSign,
-    Edit,
-    Filter,
-    Plus,
-    Receipt,
-    Search,
-    Trash2,
-    User,
-    Users,
+  AlertTriangle,
+  CalendarIcon,
+  CheckCircle,
+  CreditCard,
+  DollarSign,
+  Edit,
+  Filter,
+  Plus,
+  Receipt,
+  Search,
+  Trash2,
+  User,
+  Users,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -116,21 +116,20 @@ export default function ExpensesPage() {
         // Load data from API using authenticated client
         const [expensesResult, householdResult] = await Promise.all([
           apiClient.getExpenses().catch(() => ({ expenses: [] })),
-          apiClient.getHousehold().catch(() => ({ members: [] }))
+          apiClient.getHousehold().catch(() => ({ members: [] })),
         ])
 
         const expenseData = {
           chores: [],
           expenses: expensesResult.expenses || [],
           users: householdResult.members || [],
-          payments: []
+          payments: [],
         }
 
         setData(expenseData)
-
       } catch (error) {
-        console.error('Error loading expenses data:', error)
-        toast.error('Failed to load expenses data')
+        console.error("Error loading expenses data:", error)
+        toast.error("Failed to load expenses data")
       } finally {
         setIsLoading(false)
       }
@@ -156,19 +155,19 @@ export default function ExpensesPage() {
     try {
       const expenseData = {
         title: newExpense.title,
-        amount: newExpense.amount,
+        amount: Number.parseFloat(newExpense.amount),
         paidBy: newExpense.paidBy,
         category: newExpense.category,
         date: newExpense.date.toISOString(),
         splitBetween: newExpense.splitBetween.length > 0 ? newExpense.splitBetween : [newExpense.paidBy],
-        description: newExpense.description
+        description: newExpense.description,
       }
 
-      const result = await apiClient.createExpense(expenseData)
-      
+      await apiClient.createExpense(expenseData)
+
       // Refresh the data
       const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
-      setData(prev => ({ ...prev, expenses: expensesResult.expenses || [] }))
+      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
 
       setNewExpense({
         title: "",
@@ -181,10 +180,9 @@ export default function ExpensesPage() {
       })
       setIsDialogOpen(false)
       toast.success("Expense added successfully!")
-
     } catch (error) {
-      console.error('Error adding expense:', error)
-      toast.error('Failed to add expense')
+      console.error("Error adding expense:", error)
+      toast.error("Failed to add expense")
     }
   }
 
@@ -240,20 +238,25 @@ export default function ExpensesPage() {
     toast.success("Payment recorded successfully!")
   }
 
-  const handleEditExpense = () => {
+  const handleEditExpense = async () => {
     if (!editingExpense || !editingExpense.title || !editingExpense.amount || !editingExpense.paidBy) {
       toast.error("Please fill in all required fields")
       return
     }
 
-    const newData = {
-      ...data,
-      expenses: data.expenses.map((expense) => (expense.id === editingExpense.id ? editingExpense : expense)),
-    }
+    try {
+      await apiClient.updateExpense(editingExpense.id, editingExpense)
 
-    saveData(newData)
-    setEditingExpense(null)
-    toast.success("Expense updated successfully!")
+      // Refresh the data
+      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
+      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
+
+      setEditingExpense(null)
+      toast.success("Expense updated successfully!")
+    } catch (error) {
+      console.error("Error updating expense:", error)
+      toast.error("Failed to update expense")
+    }
   }
 
   const canMarkSettled = (expense: Expense) => {
@@ -261,7 +264,7 @@ export default function ExpensesPage() {
     return user?.isAdmin || expense.paidBy === user?.id || expense.splitBetween.includes(user?.id)
   }
 
-  const handleSettleExpense = (expenseId: string) => {
+  const handleSettleExpense = async (expenseId: string) => {
     const expense = data.expenses.find((e) => e.id === expenseId)
     if (!expense) return
 
@@ -270,34 +273,40 @@ export default function ExpensesPage() {
       return
     }
 
-    const wasSettled = expense.settled
-    const newData = {
-      ...data,
-      expenses: data.expenses.map((expense) =>
-        expense.id === expenseId
-          ? {
-              ...expense,
-              settled: !expense.settled,
-              settledAt: !expense.settled ? new Date().toISOString() : undefined,
-              settledBy: !expense.settled ? user?.id : undefined,
-            }
-          : expense,
-      ),
-    }
+    try {
+      const updatedExpense = {
+        ...expense,
+        settled: !expense.settled,
+        settledAt: !expense.settled ? new Date().toISOString() : undefined,
+        settledBy: !expense.settled ? user?.id : undefined,
+      }
 
-    saveData(newData)
-    toast.success(wasSettled ? "Expense marked as unsettled" : "Expense marked as settled!")
+      await apiClient.updateExpense(expenseId, updatedExpense)
+
+      // Refresh the data
+      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
+      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
+
+      toast.success(expense.settled ? "Expense marked as unsettled" : "Expense marked as settled!")
+    } catch (error) {
+      console.error("Error updating expense status:", error)
+      toast.error("Failed to update expense status")
+    }
   }
 
-  const handleDeleteExpense = (expenseId: string) => {
-    const newData = {
-      ...data,
-      expenses: data.expenses.filter((expense) => expense.id !== expenseId),
-      payments: data.payments?.filter((payment) => payment.expenseId !== expenseId) || [],
-    }
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      await apiClient.deleteExpense(expenseId)
 
-    saveData(newData)
-    toast.success("Expense deleted successfully!")
+      // Refresh the data
+      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
+      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
+
+      toast.success("Expense deleted successfully!")
+    } catch (error) {
+      console.error("Error deleting expense:", error)
+      toast.error("Failed to delete expense")
+    }
   }
 
   const filteredExpenses = data.expenses.filter((expense) => {
