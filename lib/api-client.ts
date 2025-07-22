@@ -3,8 +3,9 @@ class ApiClient {
   private token: string | null = null
 
   constructor() {
-    // Use relative URLs in production, localhost in development
-    this.baseUrl = process.env.NODE_ENV === "production" ? "" : "http://localhost:3000"
+    // Use relative URLs for both production and development
+    // This automatically uses the correct port and protocol
+    this.baseUrl = ""
   }
   setToken(token: string) {
     this.token = token
@@ -67,6 +68,11 @@ class ApiClient {
   }
 
   async register(userData: any) {
+    // Clean and format invitation code if present
+    if (userData.invitationCode) {
+      userData.invitationCode = userData.invitationCode.trim().toUpperCase()
+    }
+
     const result = await this.request("/auth/register", {
       method: "POST",
       body: JSON.stringify(userData),
