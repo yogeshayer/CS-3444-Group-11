@@ -1,19 +1,19 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 
 interface SessionTimeoutContextType {
   extendSession: () => void
@@ -38,11 +38,11 @@ interface SessionTimeoutProviderProps {
 export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
   const router = useRouter()
   const [showWarning, setShowWarning] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(120) // 2 minutes warning
+  const [timeLeft, setTimeLeft] = useState(300) // 5 minutes warning
   const [lastActivity, setLastActivity] = useState(Date.now())
 
-  const SESSION_TIMEOUT = 15 * 60 * 1000 // 15 minutes
-  const WARNING_TIME = 2 * 60 * 1000 // 2 minutes before timeout
+  const SESSION_TIMEOUT = 60 * 60 * 1000 // 60 minutes (1 hour)
+  const WARNING_TIME = 5 * 60 * 1000 // 5 minutes before timeout
 
   const checkSessionValidity = () => {
     const currentUser = localStorage.getItem("currentUser")
@@ -68,7 +68,7 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     setLastActivity(now)
     localStorage.setItem("sessionStart", now.toString())
     setShowWarning(false)
-    setTimeLeft(120)
+    setTimeLeft(300)
   }
 
   const logout = () => {
@@ -123,10 +123,10 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
       const now = Date.now()
       const sessionAge = now - Number.parseInt(sessionStart)
 
-      // Show warning 2 minutes before timeout
+      // Show warning 5 minutes before timeout
       if (sessionAge > SESSION_TIMEOUT - WARNING_TIME && !showWarning) {
         setShowWarning(true)
-        setTimeLeft(120)
+        setTimeLeft(300)
       }
 
       // Auto logout after timeout
@@ -168,7 +168,7 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const progressValue = ((120 - timeLeft) / 120) * 100
+  const progressValue = ((300 - timeLeft) / 300) * 100
 
   return (
     <SessionTimeoutContext.Provider value={{ extendSession, logout, checkSessionValidity }}>

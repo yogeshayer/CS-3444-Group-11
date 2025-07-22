@@ -1,47 +1,47 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Plus,
-  DollarSign,
-  Filter,
-  Search,
-  CalendarIcon,
-  Trash2,
-  Edit,
-  User,
-  Users,
-  Receipt,
-  CheckCircle,
-  AlertTriangle,
-  CreditCard,
-} from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { AppNavigation } from "@/components/app-navigation"
 import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { VisualEffects } from "@/components/visual-effects"
-import { toast } from "sonner"
-import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import {
+    AlertTriangle,
+    CalendarIcon,
+    CheckCircle,
+    CreditCard,
+    DollarSign,
+    Edit,
+    Filter,
+    Plus,
+    Receipt,
+    Search,
+    Trash2,
+    User,
+    Users,
+} from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 interface Expense {
   id: string
@@ -101,36 +101,41 @@ export default function ExpensesPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const currentUser = localStorage.getItem("currentUser")
-    if (!currentUser) {
-      router.push("/")
-      return
+    const loadExpensesData = async () => {
+      try {
+        const currentUser = localStorage.getItem("currentUser")
+        if (!currentUser) {
+          router.push("/")
+          return
+        }
+
+        const userData = JSON.parse(currentUser)
+        setUser(userData)
+
+        // Load data from API
+        const [expensesResult, householdResult] = await Promise.all([
+          fetch('/api/expenses').then(res => res.ok ? res.json() : { expenses: [] }).catch(() => ({ expenses: [] })),
+          fetch('/api/household').then(res => res.ok ? res.json() : { members: [] }).catch(() => ({ members: [] }))
+        ])
+
+        const expenseData = {
+          chores: [],
+          expenses: expensesResult.expenses || [],
+          users: householdResult.members || [],
+          payments: []
+        }
+
+        setData(expenseData)
+
+      } catch (error) {
+        console.error('Error loading expenses data:', error)
+        toast.error('Failed to load expenses data')
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    const userData = JSON.parse(currentUser)
-    setUser(userData)
-
-    // Load user's data
-    const userDataKey = userData.isAdmin ? `choreboardData_${userData.id}` : `choreboardData_${userData.adminId}`
-    const choreboardData = localStorage.getItem(userDataKey)
-    if (choreboardData) {
-      const parsedData = JSON.parse(choreboardData)
-      // Initialize settled property and payments for existing expenses
-      if (parsedData.expenses) {
-        parsedData.expenses = parsedData.expenses.map((expense: any) => ({
-          ...expense,
-          settled: expense.settled ?? false,
-          payments: expense.payments || [],
-        }))
-      }
-      // Initialize payments array if it doesn't exist
-      if (!parsedData.payments) {
-        parsedData.payments = []
-      }
-      setData(parsedData)
-    }
-
-    setIsLoading(false)
+    loadExpensesData()
   }, [router])
 
   const saveData = (newData: ChoreboardData) => {
@@ -141,42 +146,57 @@ export default function ExpensesPage() {
     setData(newData)
   }
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     if (!newExpense.title || !newExpense.amount || !newExpense.paidBy) {
       toast.error("Please fill in all required fields")
       return
     }
 
-    const expense: Expense = {
-      id: Date.now().toString(),
-      title: newExpense.title,
-      amount: Number.parseFloat(newExpense.amount),
-      paidBy: newExpense.paidBy,
-      category: newExpense.category,
-      date: newExpense.date.toISOString(),
-      splitBetween: newExpense.splitBetween.length > 0 ? newExpense.splitBetween : [newExpense.paidBy],
-      description: newExpense.description,
-      settled: false,
-      payments: [],
-    }
+    try {
+      const expenseData = {
+        title: newExpense.title,
+        amount: newExpense.amount,
+        paidBy: newExpense.paidBy,
+        category: newExpense.category,
+        date: newExpense.date.toISOString(),
+        splitBetween: newExpense.splitBetween.length > 0 ? newExpense.splitBetween : [newExpense.paidBy],
+        description: newExpense.description
+      }
 
-    const newData = {
-      ...data,
-      expenses: [...data.expenses, expense],
-    }
+      const response = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(expenseData)
+      })
 
-    saveData(newData)
-    setNewExpense({
-      title: "",
-      amount: "",
-      paidBy: "",
-      category: "general",
-      date: new Date(),
-      splitBetween: [],
-      description: "",
-    })
-    setIsDialogOpen(false)
-    toast.success("Expense added successfully!")
+      if (!response.ok) {
+        throw new Error('Failed to create expense')
+      }
+
+      const result = await response.json()
+      
+      // Refresh the data
+      const expensesResult = await fetch('/api/expenses').then(res => res.json()).catch(() => ({ expenses: [] }))
+      setData(prev => ({ ...prev, expenses: expensesResult.expenses || [] }))
+
+      setNewExpense({
+        title: "",
+        amount: "",
+        paidBy: "",
+        category: "general",
+        date: new Date(),
+        splitBetween: [],
+        description: "",
+      })
+      setIsDialogOpen(false)
+      toast.success("Expense added successfully!")
+
+    } catch (error) {
+      console.error('Error adding expense:', error)
+      toast.error('Failed to add expense')
+    }
   }
 
   const handleAddPayment = () => {
