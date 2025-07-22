@@ -9,12 +9,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,22 +24,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { VisualEffects } from "@/components/visual-effects"
 import { cn } from "@/lib/utils"
 import {
-  AlertTriangle,
-  CalendarIcon,
-  CheckCircle,
-  CreditCard,
-  DollarSign,
-  Edit,
-  Filter,
-  Plus,
-  Receipt,
-  Search,
-  Trash2,
-  User,
-  Users,
+    AlertTriangle,
+    CalendarIcon,
+    CheckCircle,
+    CreditCard,
+    DollarSign,
+    Edit,
+    Filter,
+    Plus,
+    Receipt,
+    Search,
+    Trash2,
+    User,
+    Users,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 interface Expense {
   id: string
@@ -205,16 +206,16 @@ export default function ExpensesPage() {
         description: "",
       })
       setIsDialogOpen(false)
-      showToast("Expense added successfully!")
+      toast.success("Expense added successfully!")
     } catch (error) {
       console.error("Error adding expense:", error)
-      showToast("Failed to add expense", "error")
+      toast.error("Failed to add expense")
     }
   }
 
   const handleAddPayment = () => {
     if (!selectedExpenseForPayment || !newPayment.amount) {
-      showToast("Please enter payment amount", "error")
+      toast.error("Please enter payment amount")
       return
     }
 
@@ -222,7 +223,7 @@ export default function ExpensesPage() {
     const userShare = selectedExpenseForPayment.amount / selectedExpenseForPayment.splitBetween.length
 
     if (paymentAmount > userShare) {
-      showToast(`Payment amount cannot exceed your share of $${userShare.toFixed(2)}`, "error")
+      toast.error(`Payment amount cannot exceed your share of $${userShare.toFixed(2)}`)
       return
     }
 
@@ -261,12 +262,12 @@ export default function ExpensesPage() {
     setNewPayment({ amount: "", note: "" })
     setSelectedExpenseForPayment(null)
     setIsPaymentDialogOpen(false)
-    showToast("Payment recorded successfully!")
+    toast.success("Payment recorded successfully!")
   }
 
   const handleEditExpense = () => {
     if (!editingExpense || !editingExpense.title || !editingExpense.amount || !editingExpense.paidBy) {
-      showToast("Please fill in all required fields", "error")
+      toast.error("Please fill in all required fields")
       return
     }
 
@@ -277,7 +278,7 @@ export default function ExpensesPage() {
 
     saveData(newData)
     setEditingExpense(null)
-    showToast("Expense updated successfully!")
+    toast.success("Expense updated successfully!")
   }
 
   const canMarkSettled = (expense: Expense) => {
@@ -290,7 +291,7 @@ export default function ExpensesPage() {
     if (!expense) return
 
     if (!canMarkSettled(expense)) {
-      showToast("You can only mark expenses you're involved in as settled", "error")
+      toast.error("You can only mark expenses you're involved in as settled")
       return
     }
 
@@ -310,7 +311,7 @@ export default function ExpensesPage() {
     }
 
     saveData(newData)
-    showToast(wasSettled ? "Expense marked as unsettled" : "Expense marked as settled!")
+    toast.success(wasSettled ? "Expense marked as unsettled" : "Expense marked as settled!")
   }
 
   const handleDeleteExpense = (expenseId: string) => {
@@ -321,7 +322,7 @@ export default function ExpensesPage() {
     }
 
     saveData(newData)
-    showToast("Expense deleted successfully!")
+    toast.success("Expense deleted successfully!")
   }
 
   const filteredExpenses = data.expenses.filter((expense) => {
