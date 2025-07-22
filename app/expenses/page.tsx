@@ -166,7 +166,7 @@ export default function ExpensesPage() {
 
       const newData = {
         ...data,
-        expenses: [...data.expenses, expense],
+        expenses: [...(data.expenses || []), expense],
       }
 
       saveData(newData)
@@ -248,7 +248,7 @@ export default function ExpensesPage() {
 
     const newData = {
       ...data,
-      expenses: data.expenses.map((expense) => (expense.id === editingExpense.id ? editingExpense : expense)),
+      expenses: (data.expenses || []).map((expense) => (expense.id === editingExpense.id ? editingExpense : expense)),
     }
 
     saveData(newData)
@@ -262,7 +262,7 @@ export default function ExpensesPage() {
   }
 
   const handleSettleExpense = (expenseId: string) => {
-    const expense = data.expenses.find((e) => e.id === expenseId)
+    const expense = (data.expenses || []).find((e) => e.id === expenseId)
     if (!expense) return
 
     if (!canMarkSettled(expense)) {
@@ -273,7 +273,7 @@ export default function ExpensesPage() {
     const wasSettled = expense.settled
     const newData = {
       ...data,
-      expenses: data.expenses.map((expense) =>
+      expenses: (data.expenses || []).map((expense) =>
         expense.id === expenseId
           ? {
               ...expense,
@@ -292,15 +292,15 @@ export default function ExpensesPage() {
   const handleDeleteExpense = (expenseId: string) => {
     const newData = {
       ...data,
-      expenses: data.expenses.filter((expense) => expense.id !== expenseId),
-      payments: data.payments?.filter((payment) => payment.expenseId !== expenseId) || [],
+      expenses: (data.expenses || []).filter((expense) => expense.id !== expenseId),
+      payments: (data.payments || []).filter((payment) => payment.expenseId !== expenseId),
     }
 
     saveData(newData)
     toast.success("Expense deleted successfully!")
   }
 
-  const filteredExpenses = data.expenses.filter((expense) => {
+  const filteredExpenses = (data.expenses || []).filter((expense) => {
     const matchesSearch =
       expense.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -314,7 +314,7 @@ export default function ExpensesPage() {
   })
 
   const getUserName = (userId: string) => {
-    const foundUser = data.users.find((u) => u.id === userId)
+    const foundUser = (data.users || []).find((u) => u.id === userId)
     return foundUser ? foundUser.name : "Unknown User"
   }
 
@@ -443,7 +443,7 @@ export default function ExpensesPage() {
                             <SelectValue placeholder="Select member" />
                           </SelectTrigger>
                           <SelectContent>
-                            {data.users.map((user: any) => (
+                            {(data.users || []).map((user: any) => (
                               <SelectItem key={user.id} value={user.id}>
                                 {user.name}
                               </SelectItem>
@@ -505,7 +505,7 @@ export default function ExpensesPage() {
                     <div className="space-y-2">
                       <Label>Split Between</Label>
                       <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {data.users.map((user: any) => (
+                        {(data.users || []).map((user: any) => (
                           <div key={user.id} className="flex items-center space-x-2">
                             <Checkbox
                               id={`split-${user.id}`}
@@ -653,7 +653,7 @@ export default function ExpensesPage() {
 
             {/* Expenses List */}
             <div className="space-y-4">
-              {filteredExpenses.length > 0 ? (
+              {filteredExpenses && filteredExpenses.length > 0 ? (
                 filteredExpenses.map((expense, index) => (
                   <Card
                     key={expense.id}
@@ -880,7 +880,7 @@ export default function ExpensesPage() {
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            {data.users.map((user: any) => (
+                                            {(data.users || []).map((user: any) => (
                                               <SelectItem key={user.id} value={user.id}>
                                                 {user.name}
                                               </SelectItem>
@@ -951,7 +951,7 @@ export default function ExpensesPage() {
                                     <div className="space-y-2">
                                       <Label>Split Between</Label>
                                       <div className="space-y-2 max-h-32 overflow-y-auto">
-                                        {data.users.map((user: any) => (
+                                        {(data.users || []).map((user: any) => (
                                           <div key={user.id} className="flex items-center space-x-2">
                                             <Checkbox
                                               id={`edit-split-${user.id}`}
