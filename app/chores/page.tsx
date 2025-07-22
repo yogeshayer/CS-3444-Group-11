@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { VisualEffects } from "@/components/visual-effects"
+import { apiClient } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { addDays, addMonths, addWeeks, format } from "date-fns"
 import {
@@ -111,10 +112,10 @@ export default function ChoresPage() {
         const userData = JSON.parse(currentUser)
         setUser(userData)
 
-        // Load data from API
+        // Load data from API using authenticated client
         const [choresResult, householdResult] = await Promise.all([
-          fetch('/api/chores').then(res => res.ok ? res.json() : { chores: [] }).catch(() => ({ chores: [] })),
-          fetch('/api/household').then(res => res.ok ? res.json() : { members: [] }).catch(() => ({ members: [] }))
+          apiClient.getChores().catch(() => ({ chores: [] })),
+          apiClient.getHousehold().catch(() => ({ members: [] }))
         ])
 
         const choreData = {
@@ -259,22 +260,10 @@ export default function ChoresPage() {
         } : null
       }
 
-      const response = await fetch('/api/chores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(choreData)
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create chore')
-      }
-
-      const result = await response.json()
+      const result = await apiClient.createChore(choreData)
       
       // Refresh the data
-      const choresResult = await fetch('/api/chores').then(res => res.json()).catch(() => ({ chores: [] }))
+      const choresResult = await apiClient.getChores().catch(() => ({ chores: [] }))
       setData(prev => ({ ...prev, chores: choresResult.chores || [] }))
 
       setNewChore({

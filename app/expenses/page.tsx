@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { VisualEffects } from "@/components/visual-effects"
+import { apiClient } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import {
@@ -112,10 +113,10 @@ export default function ExpensesPage() {
         const userData = JSON.parse(currentUser)
         setUser(userData)
 
-        // Load data from API
+        // Load data from API using authenticated client
         const [expensesResult, householdResult] = await Promise.all([
-          fetch('/api/expenses').then(res => res.ok ? res.json() : { expenses: [] }).catch(() => ({ expenses: [] })),
-          fetch('/api/household').then(res => res.ok ? res.json() : { members: [] }).catch(() => ({ members: [] }))
+          apiClient.getExpenses().catch(() => ({ expenses: [] })),
+          apiClient.getHousehold().catch(() => ({ members: [] }))
         ])
 
         const expenseData = {
@@ -163,22 +164,10 @@ export default function ExpensesPage() {
         description: newExpense.description
       }
 
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(expenseData)
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create expense')
-      }
-
-      const result = await response.json()
+      const result = await apiClient.createExpense(expenseData)
       
       // Refresh the data
-      const expensesResult = await fetch('/api/expenses').then(res => res.json()).catch(() => ({ expenses: [] }))
+      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
       setData(prev => ({ ...prev, expenses: expensesResult.expenses || [] }))
 
       setNewExpense({

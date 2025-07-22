@@ -41,6 +41,7 @@ class ApiClient {
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
+      credentials: 'include', // Include cookies in requests
     }
 
     const response = await fetch(`${this.baseUrl}/api${endpoint}`, config)
