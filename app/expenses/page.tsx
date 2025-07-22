@@ -538,7 +538,7 @@ export default function ExpensesPage() {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {newExpense.splitBetween.length > 0
-                          ? `Each person pays: $${(Number.parseFloat(newExpense.amount) / newExpense.splitBetween.length || 0).toFixed(2)}`
+                          ? `Each person pays: $${formatAmount((Number.parseFloat(newExpense.amount) / newExpense.splitBetween.length || 0))}`
                           : "Select members to split the expense"}
                       </p>
                     </div>
