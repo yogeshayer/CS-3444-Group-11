@@ -1,37 +1,37 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Users, Crown, Mail, Calendar, MoreHorizontal, UserCheck, UserX, Copy, Key, Send, Clock } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { AppNavigation } from "@/components/app-navigation"
 import { SessionTimeoutProvider } from "@/components/session-timeout-provider"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { VisualEffects } from "@/components/visual-effects"
+import { Calendar, Clock, Copy, Crown, Key, Mail, MoreHorizontal, Send, UserCheck, Users, UserX } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface AppUser {
@@ -73,52 +73,37 @@ export default function RoommatesPage() {
     const parsedUser = JSON.parse(user)
     setCurrentUser(parsedUser)
 
-    if (!parsedUser.isAdmin) {
-      toast.error("Access denied. Admin privileges required.")
-      router.push("/dashboard")
-      return
-    }
-
+    // Allow both admin and regular users to view roommates page
     loadRoommates(parsedUser)
   }, [router])
 
-  const loadRoommates = (user: AppUser) => {
+  const loadRoommates = async (user: AppUser) => {
     try {
-      const data = localStorage.getItem(`ChoreboardData_${user.id}`)
-      if (data) {
-        const parsedData = JSON.parse(data)
-        setUsers(parsedData.users || [])
-        setPendingRequests(parsedData.pendingRequests || [])
-        setInvitationRequests(parsedData.invitationRequests || [])
-
-        // Ensure invitation code exists
-        if (!parsedData.invitationCode) {
-          const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-          parsedData.invitationCode = newCode
-          localStorage.setItem(`ChoreboardData_${user.id}`, JSON.stringify(parsedData))
-          console.log(`Generated new invitation code for admin ${user.name}: ${newCode}`)
-        }
-        setInvitationCode(parsedData.invitationCode)
-      } else {
-        // If no data exists, create initial data with invitation code
-        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-        const initialData = {
-          chores: [],
-          expenses: [],
-          users: [user],
-          invitationCode: newCode,
-          pendingRequests: [],
-          invitationRequests: [],
-          recentActivity: [],
-        }
-        localStorage.setItem(`ChoreboardData_${user.id}`, JSON.stringify(initialData))
-        setInvitationCode(newCode)
-        setUsers([user])
-        console.log(`Created initial data with invitation code for admin ${user.name}: ${newCode}`)
+      // Use API to get household data
+      const response = await fetch('/api/household')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch household data')
       }
+
+      const data = await response.json()
+      
+      // Set household members
+      setUsers(data.members || [])
+      
+      // Set pending requests (only for admin)
+      if (user.isAdmin) {
+        setPendingRequests(data.pendingRequests || [])
+      }
+      
+      // Set invitation code
+      if (data.household?.invitationCode) {
+        setInvitationCode(data.household.invitationCode)
+      }
+      
     } catch (error) {
-      console.error("Error loading roommates:", error)
-      toast.error("Failed to load roommate data")
+      console.error('Error loading roommates:', error)
+      toast.error('Failed to load household data')
     } finally {
       setIsLoading(false)
     }
@@ -159,30 +144,36 @@ export default function RoommatesPage() {
     }
   }
 
-  const approveUser = (userId: string) => {
-    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
-    const userToApprove = data.pendingRequests.find((u) => u.id === userId)
+  const approveUser = async (userId: string) => {
+    if (!currentUser?.isAdmin) {
+      toast.error("Only admins can approve users")
+      return
+    }
 
-    if (!userToApprove) return
+    try {
+      const response = await fetch('/api/household/manage-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve',
+          userId: userId
+        })
+      })
 
-    // Update user status in registered users
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-    const updatedRegisteredUsers = registeredUsers.map((u: AppUser) =>
-      u.id === userId ? { ...u, status: "approved", joinedAt: new Date().toISOString() } : u,
-    )
-    localStorage.setItem("registeredUsers", JSON.stringify(updatedRegisteredUsers))
+      if (!response.ok) {
+        throw new Error('Failed to approve user')
+      }
 
-    // Move from pending to approved users
-    const approvedUser = { ...userToApprove, status: "approved", joinedAt: new Date().toISOString() }
-    data.users = [...(data.users || []), approvedUser]
-    data.pendingRequests = (data.pendingRequests || []).filter((u: AppUser) => u.id !== userId)
-
-    saveData(data)
-    setUsers(data.users)
-    setPendingRequests(data.pendingRequests)
-
-    addRecentActivity(`${userToApprove.name} was approved and joined the household`)
-    toast.success(`${userToApprove.name} has been approved!`)
+      toast.success("User approved successfully!")
+      // Reload the data
+      await loadRoommates(currentUser)
+      
+    } catch (error) {
+      console.error('Error approving user:', error)
+      toast.error('Failed to approve user')
+    }
   }
 
   const rejectUser = (userId: string) => {
@@ -208,25 +199,40 @@ export default function RoommatesPage() {
     toast.success(`${userToReject.name}'s request has been rejected`)
   }
 
-  const removeUser = (userId: string) => {
+  const removeUser = async (userId: string) => {
+    if (!currentUser?.isAdmin) {
+      toast.error("Only admins can remove users")
+      return
+    }
+
     if (!userToRemove) return
 
-    const data = JSON.parse(localStorage.getItem(`ChoreboardData_${currentUser!.id}`) || "{}")
+    try {
+      const response = await fetch('/api/household/manage-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          userId: userId
+        })
+      })
 
-    // Remove from household users
-    data.users = (data.users || []).filter((u: AppUser) => u.id !== userId)
+      if (!response.ok) {
+        throw new Error('Failed to remove user')
+      }
 
-    // Update registered users status
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-    const updatedRegisteredUsers = registeredUsers.filter((u: AppUser) => u.id !== userId)
-    localStorage.setItem("registeredUsers", JSON.stringify(updatedRegisteredUsers))
-
-    saveData(data)
-    setUsers(data.users)
-    setUserToRemove(null)
-
-    addRecentActivity(`${userToRemove.name} was removed from the household`)
-    toast.success(`${userToRemove.name} has been removed`)
+      toast.success(`${userToRemove.name} has been removed`)
+      setUserToRemove(null)
+      
+      // Reload the data
+      await loadRoommates(currentUser)
+      
+    } catch (error) {
+      console.error('Error removing user:', error)
+      toast.error('Failed to remove user')
+    }
   }
 
   const sendInvitation = async () => {
@@ -360,15 +366,18 @@ export default function RoommatesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-foreground">Roommates</h1>
-                  <p className="text-muted-foreground">Manage your household members</p>
+                  <p className="text-muted-foreground">
+                    {currentUser?.isAdmin ? "Manage your household members" : "View your household members"}
+                  </p>
                 </div>
-                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Invitation
-                    </Button>
-                  </DialogTrigger>
+                {currentUser?.isAdmin && (
+                  <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Invitation
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent className="backdrop-blur-sm bg-white/95 dark:bg-gray-900/95">
                     <DialogHeader>
                       <DialogTitle>Send Invitation</DialogTitle>
@@ -396,6 +405,7 @@ export default function RoommatesPage() {
                     </div>
                   </DialogContent>
                 </Dialog>
+                )}
               </div>
 
               {/* Invitation Code Card */}
@@ -473,8 +483,8 @@ export default function RoommatesPage() {
                 </Card>
               )}
 
-              {/* Pending Requests */}
-              {pendingRequests.length > 0 && (
+              {/* Pending Requests - Admin Only */}
+              {currentUser?.isAdmin && pendingRequests.length > 0 && (
                 <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 border-white/20">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -577,7 +587,7 @@ export default function RoommatesPage() {
                                   </div>
                                 </div>
                               </div>
-                              {!user.isAdmin && (
+                              {!user.isAdmin && currentUser?.isAdmin && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
