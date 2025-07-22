@@ -22,9 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { VisualEffects } from "@/components/visual-effects"
-import { apiClient } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
 import {
   AlertTriangle,
   CalendarIcon,
@@ -42,7 +40,6 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
 
 interface Expense {
   id: string
@@ -73,6 +70,23 @@ interface ChoreboardData {
   expenses: Expense[]
   users: any[]
   payments?: Payment[]
+}
+
+// Simple toast function to replace sonner
+const showToast = (message: string, type: "success" | "error" = "success") => {
+  console.log(`${type.toUpperCase()}: ${message}`)
+  // You can implement a proper toast notification here
+  alert(`${type.toUpperCase()}: ${message}`)
+}
+
+// Simple date formatter to replace date-fns
+const formatDate = (date: Date | string) => {
+  const d = new Date(date)
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
 }
 
 export default function ExpensesPage() {
@@ -113,23 +127,31 @@ export default function ExpensesPage() {
         const userData = JSON.parse(currentUser)
         setUser(userData)
 
-        // Load data from API using authenticated client
-        const [expensesResult, householdResult] = await Promise.all([
-          apiClient.getExpenses().catch(() => ({ expenses: [] })),
-          apiClient.getHousehold().catch(() => ({ members: [] })),
-        ])
+        // Load data from localStorage for now
+        const userDataKey = userData.isAdmin ? `choreboardData_${userData.id}` : `choreboardData_${userData.adminId}`
+        const storedData = localStorage.getItem(userDataKey) || localStorage.getItem("choreboardData")
 
-        const expenseData = {
-          chores: [],
-          expenses: expensesResult.expenses || [],
-          users: householdResult.members || [],
-          payments: [],
+        if (storedData) {
+          const parsedData = JSON.parse(storedData)
+          setData({
+            chores: parsedData.chores || [],
+            expenses: parsedData.expenses || [],
+            users: parsedData.users || [],
+            payments: parsedData.payments || [],
+          })
+        } else {
+          // Initialize with default data
+          const defaultData = {
+            chores: [],
+            expenses: [],
+            users: [userData],
+            payments: [],
+          }
+          setData(defaultData)
         }
-
-        setData(expenseData)
       } catch (error) {
         console.error("Error loading expenses data:", error)
-        toast.error("Failed to load expenses data")
+        showToast("Failed to load expenses data", "error")
       } finally {
         setIsLoading(false)
       }
@@ -146,14 +168,15 @@ export default function ExpensesPage() {
     setData(newData)
   }
 
-  const handleAddExpense = async () => {
+  const handleAddExpense = () => {
     if (!newExpense.title || !newExpense.amount || !newExpense.paidBy) {
-      toast.error("Please fill in all required fields")
+      showToast("Please fill in all required fields", "error")
       return
     }
 
     try {
-      const expenseData = {
+      const expense: Expense = {
+        id: Date.now().toString(),
         title: newExpense.title,
         amount: Number.parseFloat(newExpense.amount),
         paidBy: newExpense.paidBy,
@@ -161,13 +184,16 @@ export default function ExpensesPage() {
         date: newExpense.date.toISOString(),
         splitBetween: newExpense.splitBetween.length > 0 ? newExpense.splitBetween : [newExpense.paidBy],
         description: newExpense.description,
+        settled: false,
+        payments: [],
       }
 
-      await apiClient.createExpense(expenseData)
+      const newData = {
+        ...data,
+        expenses: [...data.expenses, expense],
+      }
 
-      // Refresh the data
-      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
-      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
+      saveData(newData)
 
       setNewExpense({
         title: "",
@@ -179,16 +205,16 @@ export default function ExpensesPage() {
         description: "",
       })
       setIsDialogOpen(false)
-      toast.success("Expense added successfully!")
+      showToast("Expense added successfully!")
     } catch (error) {
       console.error("Error adding expense:", error)
-      toast.error("Failed to add expense")
+      showToast("Failed to add expense", "error")
     }
   }
 
   const handleAddPayment = () => {
     if (!selectedExpenseForPayment || !newPayment.amount) {
-      toast.error("Please enter payment amount")
+      showToast("Please enter payment amount", "error")
       return
     }
 
@@ -196,7 +222,7 @@ export default function ExpensesPage() {
     const userShare = selectedExpenseForPayment.amount / selectedExpenseForPayment.splitBetween.length
 
     if (paymentAmount > userShare) {
-      toast.error(`Payment amount cannot exceed your share of $${userShare.toFixed(2)}`)
+      showToast(`Payment amount cannot exceed your share of $${userShare.toFixed(2)}`, "error")
       return
     }
 
@@ -235,28 +261,23 @@ export default function ExpensesPage() {
     setNewPayment({ amount: "", note: "" })
     setSelectedExpenseForPayment(null)
     setIsPaymentDialogOpen(false)
-    toast.success("Payment recorded successfully!")
+    showToast("Payment recorded successfully!")
   }
 
-  const handleEditExpense = async () => {
+  const handleEditExpense = () => {
     if (!editingExpense || !editingExpense.title || !editingExpense.amount || !editingExpense.paidBy) {
-      toast.error("Please fill in all required fields")
+      showToast("Please fill in all required fields", "error")
       return
     }
 
-    try {
-      await apiClient.updateExpense(editingExpense.id, editingExpense)
-
-      // Refresh the data
-      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
-      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
-
-      setEditingExpense(null)
-      toast.success("Expense updated successfully!")
-    } catch (error) {
-      console.error("Error updating expense:", error)
-      toast.error("Failed to update expense")
+    const newData = {
+      ...data,
+      expenses: data.expenses.map((expense) => (expense.id === editingExpense.id ? editingExpense : expense)),
     }
+
+    saveData(newData)
+    setEditingExpense(null)
+    showToast("Expense updated successfully!")
   }
 
   const canMarkSettled = (expense: Expense) => {
@@ -264,49 +285,43 @@ export default function ExpensesPage() {
     return user?.isAdmin || expense.paidBy === user?.id || expense.splitBetween.includes(user?.id)
   }
 
-  const handleSettleExpense = async (expenseId: string) => {
+  const handleSettleExpense = (expenseId: string) => {
     const expense = data.expenses.find((e) => e.id === expenseId)
     if (!expense) return
 
     if (!canMarkSettled(expense)) {
-      toast.error("You can only mark expenses you're involved in as settled")
+      showToast("You can only mark expenses you're involved in as settled", "error")
       return
     }
 
-    try {
-      const updatedExpense = {
-        ...expense,
-        settled: !expense.settled,
-        settledAt: !expense.settled ? new Date().toISOString() : undefined,
-        settledBy: !expense.settled ? user?.id : undefined,
-      }
-
-      await apiClient.updateExpense(expenseId, updatedExpense)
-
-      // Refresh the data
-      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
-      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
-
-      toast.success(expense.settled ? "Expense marked as unsettled" : "Expense marked as settled!")
-    } catch (error) {
-      console.error("Error updating expense status:", error)
-      toast.error("Failed to update expense status")
+    const wasSettled = expense.settled
+    const newData = {
+      ...data,
+      expenses: data.expenses.map((expense) =>
+        expense.id === expenseId
+          ? {
+              ...expense,
+              settled: !expense.settled,
+              settledAt: !expense.settled ? new Date().toISOString() : undefined,
+              settledBy: !expense.settled ? user?.id : undefined,
+            }
+          : expense,
+      ),
     }
+
+    saveData(newData)
+    showToast(wasSettled ? "Expense marked as unsettled" : "Expense marked as settled!")
   }
 
-  const handleDeleteExpense = async (expenseId: string) => {
-    try {
-      await apiClient.deleteExpense(expenseId)
-
-      // Refresh the data
-      const expensesResult = await apiClient.getExpenses().catch(() => ({ expenses: [] }))
-      setData((prev) => ({ ...prev, expenses: expensesResult.expenses || [] }))
-
-      toast.success("Expense deleted successfully!")
-    } catch (error) {
-      console.error("Error deleting expense:", error)
-      toast.error("Failed to delete expense")
+  const handleDeleteExpense = (expenseId: string) => {
+    const newData = {
+      ...data,
+      expenses: data.expenses.filter((expense) => expense.id !== expenseId),
+      payments: data.payments?.filter((payment) => payment.expenseId !== expenseId) || [],
     }
+
+    saveData(newData)
+    showToast("Expense deleted successfully!")
   }
 
   const filteredExpenses = data.expenses.filter((expense) => {
@@ -323,8 +338,8 @@ export default function ExpensesPage() {
   })
 
   const getUserName = (userId: string) => {
-    const user = data.users.find((u) => u.id === userId)
-    return user ? user.name : "Unknown User"
+    const foundUser = data.users.find((u) => u.id === userId)
+    return foundUser ? foundUser.name : "Unknown User"
   }
 
   const calculateSplitAmount = (expense: Expense) => {
@@ -496,7 +511,7 @@ export default function ExpensesPage() {
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {newExpense.date ? format(newExpense.date, "PPP") : <span>Pick a date</span>}
+                              {newExpense.date ? formatDate(newExpense.date) : <span>Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -936,7 +951,7 @@ export default function ExpensesPage() {
                                             >
                                               <CalendarIcon className="mr-2 h-4 w-4" />
                                               {editingExpense.date ? (
-                                                format(new Date(editingExpense.date), "PPP")
+                                                formatDate(new Date(editingExpense.date))
                                               ) : (
                                                 <span>Pick a date</span>
                                               )}
