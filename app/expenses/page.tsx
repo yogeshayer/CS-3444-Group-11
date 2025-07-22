@@ -73,12 +73,7 @@ interface ChoreboardData {
   payments?: Payment[]
 }
 
-// Simple toast function to replace sonner
-const showToast = (message: string, type: "success" | "error" = "success") => {
-  console.log(`${type.toUpperCase()}: ${message}`)
-  // You can implement a proper toast notification here
-  alert(`${type.toUpperCase()}: ${message}`)
-}
+
 
 // Simple date formatter to replace date-fns
 const formatDate = (date: Date | string) => {
@@ -152,7 +147,7 @@ export default function ExpensesPage() {
         }
       } catch (error) {
         console.error("Error loading expenses data:", error)
-        showToast("Failed to load expenses data", "error")
+        toast.error("Failed to load expenses data")
       } finally {
         setIsLoading(false)
       }
@@ -171,7 +166,7 @@ export default function ExpensesPage() {
 
   const handleAddExpense = () => {
     if (!newExpense.title || !newExpense.amount || !newExpense.paidBy) {
-      showToast("Please fill in all required fields", "error")
+      toast.error("Please fill in all required fields")
       return
     }
 
