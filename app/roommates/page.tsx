@@ -79,8 +79,9 @@ export default function RoommatesPage() {
 
   const loadRoommates = (user: AppUser) => {
     try {
-      // Load data from localStorage (consistent with other pages)
-      const userDataKey = user.isAdmin ? `choreboardData_${user.id}` : `choreboardData_${user.adminId}`
+      // Always load from the admin's data
+      const adminId = user.isAdmin ? user.id : user.adminId
+      const userDataKey = `choreboardData_${adminId}`
       const data = localStorage.getItem(userDataKey)
       if (data) {
         const parsedData = JSON.parse(data)
@@ -88,7 +89,7 @@ export default function RoommatesPage() {
         setPendingRequests(parsedData.pendingRequests || [])
         setInvitationRequests(parsedData.invitationRequests || [])
 
-        // Ensure invitation code exists (only for admin)
+        // Only allow admin to generate/regenerate code
         if (user.isAdmin && !parsedData.invitationCode) {
           const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
           parsedData.invitationCode = newCode
@@ -337,8 +338,7 @@ export default function RoommatesPage() {
               </div>
             </div>
           </div>
-        </div>
-      </SessionTimeoutProvider>
+        </SessionTimeoutProvider>
     )
   }
 
@@ -403,37 +403,39 @@ export default function RoommatesPage() {
                 )}
               </div>
 
-              {/* Invitation Code Card */}
-              <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 border-white/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    Invitation Code
-                  </CardTitle>
-                  <CardDescription>Share this code with people you want to invite</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="text-2xl font-mono font-bold bg-muted p-3 rounded-lg text-center">
-                        {invitationCode}
+              {/* Invitation Code Card (admin only) */}
+              {currentUser?.isAdmin && (
+                <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 border-white/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Key className="h-5 w-5" />
+                      Invitation Code
+                    </CardTitle>
+                    <CardDescription>Share this code with people you want to invite</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="text-2xl font-mono font-bold bg-muted p-3 rounded-lg text-center">
+                          {invitationCode}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button variant="outline" size="sm" onClick={copyInvitationCode}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={regenerateInvitationCode}>
+                          Regenerate
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={debugInvitationCode} className="text-xs">
+                          Debug
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Button variant="outline" size="sm" onClick={copyInvitationCode}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={regenerateInvitationCode}>
-                        Regenerate
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={debugInvitationCode} className="text-xs">
-                        Debug
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Invitation Requests */}
               {invitationRequests.length > 0 && (
