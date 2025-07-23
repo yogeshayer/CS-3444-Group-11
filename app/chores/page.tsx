@@ -118,6 +118,33 @@ export default function ChoresPage() {
       if (!parsedData.missedTasks) {
         parsedData.missedTasks = []
       }
+      
+      // Ensure current user is in the users array
+      if (!parsedData.users) {
+        parsedData.users = []
+      }
+      
+      // Add current user to users array if not already present
+      const currentUserExists = parsedData.users.some((u: any) => u.id === userData.id)
+      if (!currentUserExists) {
+        parsedData.users.push(userData)
+      }
+      
+      // If current user is not admin, ensure admin is also in the users array
+      if (!userData.isAdmin && userData.adminId) {
+        const adminExists = parsedData.users.some((u: any) => u.id === userData.adminId)
+        if (!adminExists) {
+          // Try to get admin data from localStorage
+          const adminData = localStorage.getItem("currentUser")
+          if (adminData) {
+            const adminUser = JSON.parse(adminData)
+            if (adminUser.isAdmin && adminUser.id === userData.adminId) {
+              parsedData.users.push(adminUser)
+            }
+          }
+        }
+      }
+      
       setData(parsedData)
 
       // Check for overdue tasks and add to missed tasks
@@ -125,6 +152,15 @@ export default function ChoresPage() {
 
       // Check for recurring chores that need to be recreated
       checkRecurringChores(parsedData, userData)
+    } else {
+      // Initialize with current user if no data exists
+      const initialData = {
+        chores: [],
+        expenses: [],
+        users: [userData],
+        missedTasks: []
+      }
+      setData(initialData)
     }
 
     setIsLoading(false)

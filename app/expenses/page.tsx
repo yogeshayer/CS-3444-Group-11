@@ -122,10 +122,31 @@ export default function ExpensesPage() {
 
     if (storedData) {
       const parsedData = JSON.parse(storedData)
+      
+      // Ensure users array includes current user
+      let users = parsedData.users || []
+      const currentUserExists = users.some((u: any) => u.id === userData.id)
+      if (!currentUserExists) {
+        users.push(userData)
+      }
+      
+      // If current user is not admin, ensure admin is also in the users array
+      if (!userData.isAdmin && userData.adminId) {
+        const adminExists = users.some((u: any) => u.id === userData.adminId)
+        if (!adminExists) {
+          // Try to get admin data from localStorage or registeredUsers
+          const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+          const adminUser = registeredUsers.find((u: any) => u.id === userData.adminId && u.isAdmin)
+          if (adminUser) {
+            users.push(adminUser)
+          }
+        }
+      }
+      
       setData({
         chores: parsedData.chores || [],
         expenses: parsedData.expenses || [],
-        users: parsedData.users || [],
+        users: users,
         payments: parsedData.payments || [],
       })
     } else {
