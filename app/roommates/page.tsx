@@ -77,33 +77,28 @@ export default function RoommatesPage() {
     loadRoommates(parsedUser)
   }, [router])
 
-  const loadRoommates = async (user: AppUser) => {
+  const loadRoommates = (user: AppUser) => {
     try {
-      // Use API to get household data
-      const response = await fetch('/api/household')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch household data')
-      }
+      // Load data from localStorage (consistent with other pages)
+      const userDataKey = user.isAdmin ? `choreboardData_${user.id}` : `choreboardData_${user.adminId}`
+      const data = localStorage.getItem(userDataKey)
+      if (data) {
+        const parsedData = JSON.parse(data)
+        setUsers(parsedData.users || [])
+        setPendingRequests(parsedData.pendingRequests || [])
+        setInvitationRequests(parsedData.invitationRequests || [])
 
-      const data = await response.json()
-      
-      // Set household members
-      setUsers(data.members || [])
-      
-      // Set pending requests (only for admin)
-      if (user.isAdmin) {
-        setPendingRequests(data.pendingRequests || [])
+        // Ensure invitation code exists (only for admin)
+        if (user.isAdmin && !parsedData.invitationCode) {
+          const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+          parsedData.invitationCode = newCode
+          localStorage.setItem(userDataKey, JSON.stringify(parsedData))
+        }
+        setInvitationCode(parsedData.invitationCode || "")
       }
-      
-      // Set invitation code
-      if (data.household?.invitationCode) {
-        setInvitationCode(data.household.invitationCode)
-      }
-      
     } catch (error) {
-      console.error('Error loading roommates:', error)
-      toast.error('Failed to load household data')
+      console.error("Error loading roommates:", error)
+      toast.error("Failed to load household data")
     } finally {
       setIsLoading(false)
     }
@@ -347,7 +342,7 @@ export default function RoommatesPage() {
     )
   }
 
-  if (!currentUser || !currentUser.isAdmin) {
+  if (!currentUser) {
     return null
   }
 

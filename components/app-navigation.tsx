@@ -1,11 +1,11 @@
 "use client"
 
-import { usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, CheckSquare, DollarSign, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { CheckSquare, DollarSign, LayoutDashboard, Users } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface AppUser {
   id: string
@@ -34,7 +34,6 @@ const navigationItems = [
     name: "Roommates",
     href: "/roommates",
     icon: Users,
-    adminOnly: true,
   },
 ]
 
@@ -49,7 +48,7 @@ export function AppNavigation() {
     }
   }, [])
 
-  const visibleItems = navigationItems.filter((item) => !item.adminOnly || (item.adminOnly && currentUser?.isAdmin))
+  const visibleItems = navigationItems
 
   return (
     <nav className="bg-white dark:bg-slate-800 border-b border-border shadow-sm">
